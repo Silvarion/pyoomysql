@@ -30,7 +30,7 @@ class Database:
     connection = None
 
     # Creator
-    def __init__(self, hostname, port=3306, database='information_schema', log_level=logging.INFO):
+    def __init__(self, hostname, port=3306, schema='information_schema', log_level=logging.INFO):
         self.hostname = hostname
         self.port = port
         self.schema = database
