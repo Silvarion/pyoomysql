@@ -33,7 +33,7 @@ class Database:
     def __init__(self, hostname, port=3306, schema='information_schema', log_level=logging.INFO):
         self.hostname = hostname
         self.port = port
-        self.schema = database
+        self.schema = schema
         self.auth_plugin = None
         logger.setLevel(log_level)
 
