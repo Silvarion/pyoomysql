@@ -35,7 +35,7 @@ class Table:
         return json.dumps({
             "database": f"{self.database.hostname}:{self.database.port}",
             "schema": f"{self.schema.name}",
-            "name": self.name
+            "name": self.name,
             "fqn": self.fqn
         },indent=2)
 
