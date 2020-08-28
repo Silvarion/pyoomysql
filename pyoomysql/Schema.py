@@ -8,6 +8,7 @@ from mysql.connector import FieldType
 from argparse import ArgumentParser
 from datetime import datetime
 from datetime import timedelta
+import json
 import getpass
 import logging
 from logging import DEBUG
@@ -37,6 +38,16 @@ class Schema:
             self.tables = []
         else:
             self.name = 'NotFound'
+    def __str__(self):
+        if len(self.tables) == 0:
+            self.load_tables()
+        return json.dumps({
+            "database": f"{self.database.hostname}:{self.database.port}",
+            "name": self.name,
+            "charset": self.charset,
+            "collation": self.collation,
+            "tables": [self.tables]
+        },indent=2)
 
     def load_tables(self):
         self.tables = self.get_tables()

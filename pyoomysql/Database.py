@@ -7,6 +7,7 @@ from mysql.connector import FieldType
 from argparse import ArgumentParser
 from datetime import datetime
 from datetime import timedelta
+import json
 import getpass
 import logging
 from logging import DEBUG
@@ -39,11 +40,11 @@ class Database:
 
     # Methods
     def __str__(self):
-        return {
+        return json.dumps({
             "hostname": self.hostname,
             "port": self.port,
 
-        }
+        },indent=2)
 
     def connect(self, username, password, schema='',auth_plugin=None,nolog=False):
         cnx = None

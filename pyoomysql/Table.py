@@ -31,6 +31,14 @@ class Table:
         self.database = schema.database
         self.fqn = f"{self.schema.name}.{self.name}"
 
+    def __str__(self):
+        return json.dumps({
+            "database": f"{self.database.hostname}:{self.database.port}",
+            "schema": f"{self.schema.name}",
+            "name": self.name
+            "fqn": self.fqn
+        },indent=2)
+
     def get_columns(self):
         # logger.log(DEBUG, f"Table is: {table_name}")
         result = self.database.execute(f"SELECT column_name, ordinal_position, column_default, is_nullable, data_type, column_type, character_set_name, collation_name FROM information_schema.columns WHERE table_schema = '{self.schema.name}' AND table_name = '{self.name}' ORDER BY ordinal_position")

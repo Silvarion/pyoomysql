@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="pyoomysql", # Replace with your own username
-    version="0.1.0",
+    version="0.1.1",
     author="Jesus Alejandro Sanchez Davila",
     author_email="silvarion@gmail.com",
     description="Python Object-Orinted MySQL interface",

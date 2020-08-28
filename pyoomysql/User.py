@@ -8,6 +8,7 @@ from mysql.connector import FieldType
 from argparse import ArgumentParser
 from datetime import datetime
 from datetime import timedelta
+import json
 import getpass
 import logging
 from logging import DEBUG
@@ -120,12 +121,12 @@ class User:
             logger.warning(f'{len(result["rows"])} results found. Please modify your search to get only 1 user.')
 
     def __str__(self):
-        return {
+        return json.dumps({
             "username": self.username,
             "host": self.host,
             "roles": self.roles,
             "grants": self.grants
-        }
+        },indent=2)
 
     def check(self):
         response = self.database.execute(f"SELECT user, host FROM mysql.user WHERE user = '{self.username}' AND host = '{self.host}'")
