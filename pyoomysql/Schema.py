@@ -30,14 +30,23 @@ logger = logging.getLogger()
 class Schema:
     def __init__(self, database, name):
         self.database = database
-        schema = self.database.get_schema(name)
-        if schema and len(schema) > 0:
-            self.name = schema[0]['schema_name']
-            self.charset = schema[0]['charset']
-            self.collation = schema[0]['collation']
-            self.tables = []
+        if self.database.is_connected():
+            schema = self.database.get_schema(name)
+            if schema and len(schema) > 0:
+                self.name = schema[0]['schema_name']
+                self.charset = schema[0]['charset']
+                self.collation = schema[0]['collation']
+                self.tables = []
+                self.exists = True
+            else:
+                self.name = name
+                self.charset = "utf8mb4" # Best default option
+                self.collation = "utf8mb4_unicode_520_ci"
+                self.tables = []
+                self.exists = False
         else:
-            self.name = 'NotFound'
+            logger.error("No connection to the database found. Please connect first")
+
     def __str__(self):
         if len(self.tables) == 0:
             self.load_tables()
@@ -49,10 +58,30 @@ class Schema:
             "tables": [self.tables]
         },indent=2)
 
+    def create(self):
+        if not self.exists:
+            logger.debug("Schema not found")
+            logger.info("Creating schema...")
+            sql = f"CREATE SCHEMA '{self.name}' DEFAULT CHARACTER SET '{self.charset}';"
+            self.database.execute(command=sql)
+        else:
+            logger.warning("Schema already exists in the database. Please choose a different name")
+
+    def drop(self):
+        if self.exists:
+            logger.debug("Schema found")
+            logger.info("Droping schema...")
+            sql = f"DROP SCHEMA '{self.name}';"
+            self.database.execute(command=sql)
+        else:
+            logger.warning("Schema does not exist in the database. Nothing to do.")
+
     def load_tables(self):
-        self.tables = self.get_tables()
+        if self.exists:
+            self.tables = self.get_tables()
 
     def get_tables(self):
+        if self.exists:
         result = self.database.execute(f"SELECT table_schema AS schema_name, table_name, table_type, table_rows, avg_row_length, max_data_length FROM information_schema.tables WHERE table_schema = '{self.name}' ORDER by 1,2")
         tables = {}
         for row in result['rows']:
@@ -72,101 +101,103 @@ class Schema:
         return tables
 
     def get_table(self, table_name):
-        result = self.database.execute(f"SELECT table_schema AS schema_name, table_name, table_type, table_rows, avg_row_length, max_data_length FROM information_schema.tables WHERE table_schema = '{self.name}' AND table_name = '{table_name}' ORDER by 1,2")
-        table = {}
-        if len(result) > 0:
-            table[f"{result['table_name']}"] = result[0]
-        # logger.log(DEBUG, f"Table is: {table}")
-        table_obj = Table(self, table_name)
-        table['columns'] = table_obj.get_columns()
-        return table
+        if self.exists:
+            result = self.database.execute(f"SELECT table_schema AS schema_name, table_name, table_type, table_rows, avg_row_length, max_data_length FROM information_schema.tables WHERE table_schema = '{self.name}' AND table_name = '{table_name}' ORDER by 1,2")
+            table = {}
+            if len(result) > 0:
+                table[f"{result['table_name']}"] = result[0]
+            # logger.log(DEBUG, f"Table is: {table}")
+            table_obj = Table(self, table_name)
+            table['columns'] = table_obj.get_columns()
+            return table
 
     def compare(self, schema, gen_fix_script=False):
-        # Check there is a valid connection in both databases
-        logger.log(DEBUG, f'Checking connectivity to {self.database.hostname} and {schema.database.hostname}')
-        if self.database.is_connected() and schema.database.is_connected():
-        # Check that the schema exists in both databases
-            logger.log(DEBUG, 'Creating schema objects for both databases')
-            local_schema = self
-            remote_schema = schema
-            if remote_schema.name != 'NotFound':
-                logger.log(DEBUG, f'Remote Schema is: {remote_schema.name}')
-                # Get colunms definitions and compare
-                local_schema.load_tables()
-                # logger.log(DEBUG, f'Local Schema Tables: {local_schema.tables}')
-                remote_schema.load_tables()
-                # logger.log(DEBUG, f'Remote Schema Tables: {remote_schema.tables}')
-                diff_dict = {
-                    'differences': [],
-                    'fix_commands': []
-                }
-                for table_entry in local_schema.tables.keys():
-                    if table_entry in remote_schema.tables.keys():
-                        logger.log(DEBUG, f"Checking table {table_entry}")
-                        for column in local_schema.tables[table_entry]['columns'].keys():
-                            if column in remote_schema.tables[table_entry]['columns'].keys():
-                                # logger.log(DEBUG, f"Checking column {column}")
-                                for key in local_schema.tables[table_entry]['columns'][column].keys():
-                                    if key != 'ordinal_position':
-                                        if local_schema.tables[table_entry]['columns'][column][key] != remote_schema.tables[table_entry]['columns'][column][key]:
-                                            fix_command = f"ALTER TABLE {table_entry} MODIFY COLUMN "
-                                            fix_command += f"{column} {local_schema.tables[table_entry]['columns'][column]['column_type']}"
-                                            if local_schema.tables[table_entry]['columns'][column]['is_nullable'] == 'NO':
-                                                fix_command += ' NOT NULL'
-                                            if local_schema.tables[table_entry]['columns'][column]['column_default'] is not None:
-                                                if local_schema.tables[table_entry]['columns'][column]['data_type'] == 'varchar':
-                                                    fix_command += f" DEFAULT '{local_schema.tables[table_entry]['columns'][column]['column_default']}'"
-                                                else:
-                                                    fix_command += f" DEFAULT {local_schema.tables[table_entry]['columns'][column]['column_default']}"
-                                            fix_command += ";"
-                                            diff_dict['differences'].append({
-                                                table_entry: {
-                                                    column:{
-                                                        local_schema.database.hostname: {
-                                                            key: local_schema.tables[table_entry]['columns'][column][key]
-                                                        },
-                                                        remote_schema.database.hostname: {
-                                                            key: remote_schema.tables[table_entry]['columns'][column][key]
+        if self.exists:
+            # Check there is a valid connection in both databases
+            logger.log(DEBUG, f'Checking connectivity to {self.database.hostname} and {schema.database.hostname}')
+            if self.database.is_connected() and schema.database.is_connected():
+            # Check that the schema exists in both databases
+                logger.log(DEBUG, 'Creating schema objects for both databases')
+                local_schema = self
+                remote_schema = schema
+                if remote_schema.name != 'NotFound':
+                    logger.log(DEBUG, f'Remote Schema is: {remote_schema.name}')
+                    # Get colunms definitions and compare
+                    local_schema.load_tables()
+                    # logger.log(DEBUG, f'Local Schema Tables: {local_schema.tables}')
+                    remote_schema.load_tables()
+                    # logger.log(DEBUG, f'Remote Schema Tables: {remote_schema.tables}')
+                    diff_dict = {
+                        'differences': [],
+                        'fix_commands': []
+                    }
+                    for table_entry in local_schema.tables.keys():
+                        if table_entry in remote_schema.tables.keys():
+                            logger.log(DEBUG, f"Checking table {table_entry}")
+                            for column in local_schema.tables[table_entry]['columns'].keys():
+                                if column in remote_schema.tables[table_entry]['columns'].keys():
+                                    # logger.log(DEBUG, f"Checking column {column}")
+                                    for key in local_schema.tables[table_entry]['columns'][column].keys():
+                                        if key != 'ordinal_position':
+                                            if local_schema.tables[table_entry]['columns'][column][key] != remote_schema.tables[table_entry]['columns'][column][key]:
+                                                fix_command = f"ALTER TABLE {table_entry} MODIFY COLUMN "
+                                                fix_command += f"{column} {local_schema.tables[table_entry]['columns'][column]['column_type']}"
+                                                if local_schema.tables[table_entry]['columns'][column]['is_nullable'] == 'NO':
+                                                    fix_command += ' NOT NULL'
+                                                if local_schema.tables[table_entry]['columns'][column]['column_default'] is not None:
+                                                    if local_schema.tables[table_entry]['columns'][column]['data_type'] == 'varchar':
+                                                        fix_command += f" DEFAULT '{local_schema.tables[table_entry]['columns'][column]['column_default']}'"
+                                                    else:
+                                                        fix_command += f" DEFAULT {local_schema.tables[table_entry]['columns'][column]['column_default']}"
+                                                fix_command += ";"
+                                                diff_dict['differences'].append({
+                                                    table_entry: {
+                                                        column:{
+                                                            local_schema.database.hostname: {
+                                                                key: local_schema.tables[table_entry]['columns'][column][key]
+                                                            },
+                                                            remote_schema.database.hostname: {
+                                                                key: remote_schema.tables[table_entry]['columns'][column][key]
+                                                            }
                                                         }
                                                     }
+                                                })
+                                                diff_dict['fix_commands'].append(fix_command)
+                                else:
+                                    fix_command = f"ALTER TABLE {table_entry} ADD COLUMN "
+                                    fix_command += f"{column} {local_schema.tables[table_entry]['columns'][column]['column_type']}"
+                                    if local_schema.tables[table_entry]['columns'][column]['is_nullable'] == 'NO':
+                                        fix_command += ' NOT NULL'
+                                    if local_schema.tables[table_entry]['columns'][column]['column_default'] is not None:
+                                        if local_schema.tables[table_entry]['columns'][column]['data_type'] == 'varchar':
+                                            fix_command += f" DEFAULT '{local_schema.tables[table_entry]['columns'][column]['column_default']}'"
+                                        else:
+                                            fix_command += f" DEFAULT {local_schema.tables[table_entry]['columns'][column]['column_default']}"
+                                    fix_command += ";"
+                                    diff_dict['differences'].append({
+                                        table_entry: {
+                                            column:{
+                                                local_schema.database.hostname: {
+                                                    'column_exists': True
+                                                },
+                                                remote_schema.database.hostname: {
+                                                    'column_exists': False
                                                 }
-                                            })
-                                            diff_dict['fix_commands'].append(fix_command)
-                            else:
-                                fix_command = f"ALTER TABLE {table_entry} ADD COLUMN "
-                                fix_command += f"{column} {local_schema.tables[table_entry]['columns'][column]['column_type']}"
-                                if local_schema.tables[table_entry]['columns'][column]['is_nullable'] == 'NO':
-                                    fix_command += ' NOT NULL'
-                                if local_schema.tables[table_entry]['columns'][column]['column_default'] is not None:
-                                    if local_schema.tables[table_entry]['columns'][column]['data_type'] == 'varchar':
-                                        fix_command += f" DEFAULT '{local_schema.tables[table_entry]['columns'][column]['column_default']}'"
-                                    else:
-                                        fix_command += f" DEFAULT {local_schema.tables[table_entry]['columns'][column]['column_default']}"
-                                fix_command += ";"
-                                diff_dict['differences'].append({
-                                    table_entry: {
-                                        column:{
-                                            local_schema.database.hostname: {
-                                                'column_exists': True
-                                            },
-                                            remote_schema.database.hostname: {
-                                                'column_exists': False
                                             }
                                         }
+                                    })
+                                    diff_dict['fix_commands'].append(fix_command)
+                        else:
+                            diff_dict['differences'].append({
+                                self.name: {
+                                    local_schema.database.hostname: {
+                                        'schema_exists': True
+                                    },
+                                    remote_schema.database.hostname: {
+                                        'schema_exists': False
                                     }
-                                })
-                                diff_dict['fix_commands'].append(fix_command)
-                    else:
-                        diff_dict['differences'].append({
-                            self.name: {
-                                local_schema.database.hostname: {
-                                    'schema_exists': True
-                                },
-                                remote_schema.database.hostname: {
-                                    'schema_exists': False
                                 }
-                            }
-                        })
-                return diff_dict
-        # TO-DO: Get functions definitions and compare
-        return None
+                            })
+                    return diff_dict
+            # TO-DO: Get functions definitions and compare
+            return None
