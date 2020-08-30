@@ -82,23 +82,23 @@ class Schema:
 
     def get_tables(self):
         if self.exists:
-        result = self.database.execute(f"SELECT table_schema AS schema_name, table_name, table_type, table_rows, avg_row_length, max_data_length FROM information_schema.tables WHERE table_schema = '{self.name}' ORDER by 1,2")
-        tables = {}
-        for row in result['rows']:
-            tables[f"{row['table_name']}"] = {
-                'schema_name': row['schema_name'],
-                'table_name': row['table_name'],
-                'full_name': f"{row['schema_name']}.{row['table_name']}",
-                'table_type': row['table_type'],
-                'table_rows': row['table_rows'],
-                'avg_row_length': row['avg_row_length'],
-                'max_data_length': row['max_data_length']
-            }
-        # logger.log(DEBUG, f"Tables is: {tables}")
-        for table_name in tables.keys():
-            table = Table(schema = self, name=table_name)
-            tables[table_name]['columns'] = table.get_columns()
-        return tables
+            result = self.database.execute(f"SELECT table_schema AS schema_name, table_name, table_type, table_rows, avg_row_length, max_data_length FROM information_schema.tables WHERE table_schema = '{self.name}' ORDER by 1,2")
+            tables = {}
+            for row in result['rows']:
+                tables[f"{row['table_name']}"] = {
+                    'schema_name': row['schema_name'],
+                    'table_name': row['table_name'],
+                    'full_name': f"{row['schema_name']}.{row['table_name']}",
+                    'table_type': row['table_type'],
+                    'table_rows': row['table_rows'],
+                    'avg_row_length': row['avg_row_length'],
+                    'max_data_length': row['max_data_length']
+                }
+            # logger.log(DEBUG, f"Tables is: {tables}")
+            for table_name in tables.keys():
+                table = Table(schema = self, name=table_name)
+                tables[table_name]['columns'] = table.get_columns()
+            return tables
 
     def get_table(self, table_name):
         if self.exists:
