@@ -41,7 +41,7 @@ class Schema:
             else:
                 self.name = name
                 self.charset = "utf8mb4" # Best default option
-                self.collation = "utf8mb4_unicode_520_ci"
+                self.collation = "utf8mb4_general_ci"
                 self.tables = []
                 self.exists = False
         else:
@@ -62,7 +62,7 @@ class Schema:
         if not self.exists:
             logger.debug("Schema not found")
             logger.info("Creating schema...")
-            sql = f"CREATE SCHEMA '{self.name}' DEFAULT CHARACTER SET '{self.charset}';"
+            sql = f"CREATE SCHEMA '{self.name}' DEFAULT CHARACTER SET = '{self.charset}' COLLATE = '{self.collation}';"
             self.database.execute(command=sql)
         else:
             logger.warning("Schema already exists in the database. Please choose a different name")
