@@ -152,7 +152,7 @@ class Database:
                     resultset["rowcount"] = cursor.rowcount
                     resultset["start_time"] = f"{timer_end.strftime('%Y-%m-%d %H:%M:%S')}"
                     resultset["exec_time"] = f"{timer_elapsed.total_seconds()}"
-                logger.info(f"Command executed successfully in {resultset['exec_time']} s")
+                logger.debug(f"Command executed successfully in {resultset['exec_time']} s")
             except mysql.connector.Error as err:
                 logger.log(WARNING, 'Catched exception while executing')
                 logger.log(CRITICAL, err.errno)
