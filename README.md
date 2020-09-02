@@ -3,8 +3,6 @@ Python Object-Orinted MySQL interface.
 
 This allows to interact ith MySQL/MariaDB databases easily by constructing objects.
 
-Current version 0.1.1
-
 ## Table of Contents
 
 1. Requirements
@@ -26,7 +24,7 @@ The database class represents a simple pair ```hostname:port``` and holds connec
 
     Authentication plugin support.
 * ```connection```
-    
+
     Existing connection object (from mysql.connector.connection) or None if there is no connection.
 * ```hostname```
 
@@ -49,7 +47,7 @@ The database class represents a simple pair ```hostname:port``` and holds connec
 
     Constructor that will set hsotname, port and default schema along with the standard log_level INFO (as in the standard library logging.INFO)
 * ```connect(username: string, password: string, [schema]: string, [auth_plugin]: string)```
-    
+
     Connects to the host:port using the provided username and password. The schema defaults to "information_schema"
 * ```disconnect```
 
@@ -70,7 +68,7 @@ The database class represents a simple pair ```hostname:port``` and holds connec
 
     Returns user/host information for a given username, it might be more than one
 * ```get_user_by_name_host```
-    
+
     Returns exactly one user/host information for a given username
 * ```get_version```
 
@@ -173,10 +171,10 @@ The User class represents a User within the database
 
     List of privileges that the user has
 * ```host```
-    
+
     Host authorized to connect from
 * ```roles```
-    
+
     List of roles granted to the user
 * ```username```
 
@@ -200,7 +198,7 @@ The User class represents a User within the database
 
     # Import the package
     import pyoomysql
-    
+
     # Create Database object
     mydb = pyoomysql.Datbase(
         hostname = "example.com",
@@ -218,7 +216,7 @@ The User class represents a User within the database
         database = mydb,
         name = "some_schema"
     )
-    
+
     # Create Table object
     mytable = pyoomysql.Table(
         schema = myschema,
@@ -231,4 +229,3 @@ The User class represents a User within the database
         host = "% or host to connect from",
         password = "very_long_and_strong_password"
     )
-
