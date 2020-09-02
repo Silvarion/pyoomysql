@@ -38,7 +38,7 @@ class Database:
         self.auth_plugin = None
         logger.setLevel(log_level)
 
-    # Methods
+    # Python Object overrides
     def __str__(self):
         return json.dumps({
             "hostname": self.hostname,
@@ -46,6 +46,15 @@ class Database:
 
         },indent=2)
 
+    # Attributes and methods getters
+    def get_attributes(self):
+        return ['auth_plugin', 'connection', 'hostname', 'password', 'port', 'schema', 'username']
+
+    def get_methods(self):
+        return ['connect', 'disconnect', 'execute', 'flush_privileges', 'get_attributes', 'get_methods', 'get_schema', 'get_schemas', 'get_user_by_name', 'get_user_by_name_host', 'get_version', 'is_connected', 'load_schemas', 'reconnect']
+
+
+    # Methods
     def connect(self, username, password, schema='',auth_plugin=None,nolog=False):
         cnx = None
         try:

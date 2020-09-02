@@ -178,6 +178,7 @@ class User:
             "rows": []
         }
         if self.exists:
+
             # Update password
             if self.password[0] == '*' and len(self.password) == 41:
                 sql = f"SET PASSWORD FOR '{self.username}'@'{self.host}' = '{self.password}'"
