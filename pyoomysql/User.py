@@ -50,21 +50,15 @@ class User:
             if password is None:
                 if type(result["rows"][0]["Password"]) is bytearray:
                     self.password = result["rows"][0]["Password"].decode()
-                elif type(result["rows"][0]["Password"]) is str:
+                else:
                     self.password = result["rows"][0]["Password"]
-                elif type(result["rows"][0]["Password"]) is None:
-                    logger.warning("No password defined for the user!!!")
-                    self.password = ""
             else:
                 self.password = password
             if password is None:
                 if type(result["rows"][0]["authentication_string"]) is bytearray:
                     self.auth_string = result["rows"][0]["authentication_string"].decode()
-                elif type(result["rows"][0]["authentication_string"]) is str:
-                    self.auth_string = result["rows"][0]["Password"]
-                elif type(result["rows"][0]["authentication_string"]) is None:
-                    logger.warning("No password defined for the user!!!")
-                    self.auth_string = ""
+                else:
+                    self.auth_string = result["rows"][0]["authentication_string"]
             else:
                 self.password = password
             self.ssl_type = result["rows"][0]["ssl_type"]
@@ -134,6 +128,13 @@ class User:
             "grants": self.grants
         },indent=2)
 
+    # Attributes and methods getters
+    def get_attributes(self):
+        return ['columns', 'database', 'exists', 'fqn', 'name', 'schema']
+
+    def get_methods(self):
+        return ['compare_data', 'delete', 'get_attributes', 'get_columns', 'get_insert_statement', 'get_methods', 'get_rowcount', 'insert', 'truncate', 'update']
+
     def check(self):
         response = self.database.execute(f"SELECT user, host FROM mysql.user WHERE user = '{self.username}' AND host = '{self.host}'")
         if response["rowcount"] == 1:
@@ -184,6 +185,7 @@ class User:
             "rows": []
         }
         if self.exists:
+
             # Update password
             if self.password[0] == '*' and len(self.password) == 41:
                 sql = f"SET PASSWORD FOR '{self.username}'@'{self.host}' = '{self.password}'"
