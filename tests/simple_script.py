@@ -6,6 +6,14 @@ mydb.connect(username="mysqldba", password="mysqlpass")
 mytestschema = pyoomysql.Schema(database=mydb, name="my_test_schema")
 mytestschema.create()
 mytestschema.exists
+script = """
+-- Set schema
+use my_test_schema;
+
+-- Show tables
+show tables;
+"""
+mydb.run(script=script)
 mytestschema.drop()
 mytestschema.exists
 mysql_schema = pyoomysql.Schema(database=mydb, name="mysql")

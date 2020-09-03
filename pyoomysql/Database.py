@@ -110,28 +110,29 @@ class Database:
             else:
                 self.connect(username=self.username, password=self.password, nolog=True)
 
+    # Execute single command
     def execute(self,command):
         self.reconnect()
         resultset = {}
         if self.is_connected():
-            # logger.log(DEBUG, 'Database is connected. Trying to create cursor')
+            logger.debug('Database is connected. Trying to create cursor')
             try:
                 cursor = self.connection.cursor(buffered=True,dictionary=True)
-                # logger.log(DEBUG, 'Cursor created')
-                # logger.log(DEBUG, f'command: {command}')
+                logger.debug('Cursor created')
+                logger.debug(f'command: {command}')
                 sql = f"{command.strip(';')};"
-                # logger.log(DEBUG, f'sql: "{sql}"')
+                logger.debug(f'sql: "{sql}"')
                 timer_start = datetime.now()
                 cursor.execute(sql)
                 timer_end = datetime.now()
                 timer_elapsed = timer_end - timer_start
-                # logger.log(DEBUG, 'Command executed')
+                logger.debug('Command executed')
                 resultset = {
                     'rows': []
                 }
                 if command.upper().find("SELECT") == 0:
                     rows = cursor.fetchall()
-                    # logger.log(DEBUG, f'Fetched {cursor.rowcount} rows')
+                    logger.debug(f'Fetched {cursor.rowcount} rows')
                     columns = cursor.column_names
                     for row in rows:
                         row_dic = {}
@@ -175,6 +176,16 @@ class Database:
         else:
             logger.log(ERROR,'Please connect first, then try again')
 
+    ## Run Script
+    def run(self, script):
+        for line in script:
+            if line[:2] != "--":
+                sql += line.replace("\n"," ")
+                if line.find(";") == len(line -1):
+                    self.execute(command=sql)
+                    print(f"SQL to execute:\n{sql}")
+                    sql = ""
+
     ## Schema methods
     def load_schemas(self):
         self.schemas = self.execute('SELECT schema_name, default_character_set_name AS charset, default_collation_name as collation FROM information_schema.schemata')['rows']
@@ -194,10 +205,10 @@ class Database:
     def get_schema(self, schema_name):
         result = self.execute(f"SELECT schema_name as 'name', default_character_set_name AS charset, default_collation_name as collation FROM information_schema.schemata WHERE schema_name = '{schema_name}'")['rows']
         if len(result) > 0:
-            logger.log(DEBUG, f'Schema {schema_name} found. Returning {result}')
+            logger.debug(f'Schema {schema_name} found. Returning {result[0]}')
             return result[0]
         else:
-            logger.log(DEBUG, f'Schema {schema_name} not found. Returning None')
+            logger.debug(f'Schema {schema_name} not found. Returning None')
             return None
 
     ## User Methods
@@ -222,9 +233,6 @@ class Database:
 
     # def get_users(self):
     #     return self.execute(f"SELECT user, host FROM mysql.user;")
-
-    def dump(self):
-        return None
 
     # Flush Privileges
     def flush_privileges(self):
