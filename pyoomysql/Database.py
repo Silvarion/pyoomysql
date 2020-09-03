@@ -180,13 +180,22 @@ class Database:
         self.schemas = self.execute('SELECT schema_name, default_character_set_name AS charset, default_collation_name as collation FROM information_schema.schemata')['rows']
 
     def get_schemas(self):
-        return self.execute('SELECT schema_name, default_character_set_name AS charset, default_collation_name as collation FROM information_schema.schemata')['rows']
+        response = self.execute("SELECT schema_name, default_character_set_name AS charset, default_collation_name as collation FROM information_schema.schemata")
+        results = {}
+        for row in response["rows"]:
+            results[row["schema_name"]]= {
+                "name": row["schema_name"],
+                "charset": row["charset"],
+                "collation": row["collation"],
+                "tables": []
+            }
+        return results
 
     def get_schema(self, schema_name):
-        result = self.execute(f'SELECT schema_name, default_character_set_name AS charset, default_collation_name as collation FROM information_schema.schemata WHERE schema_name = \'{schema_name}\'')['rows']
+        result = self.execute(f"SELECT schema_name as 'name', default_character_set_name AS charset, default_collation_name as collation FROM information_schema.schemata WHERE schema_name = '{schema_name}'")['rows']
         if len(result) > 0:
             logger.log(DEBUG, f'Schema {schema_name} found. Returning {result}')
-            return result
+            return result[0]
         else:
             logger.log(DEBUG, f'Schema {schema_name} not found. Returning None')
             return None

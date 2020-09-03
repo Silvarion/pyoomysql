@@ -6,6 +6,7 @@ from argparse import ArgumentParser
 from datetime import datetime
 from datetime import timedelta
 from time import sleep
+import json
 import getpass
 import logging
 from logging import DEBUG
@@ -47,7 +48,14 @@ class Table:
             "fqn": self.fqn
         },indent=2)
 
-    # Getters
+    # Attributes and methods getters
+    def get_attributes(self):
+        return ['database', 'name', 'charset', 'collation', 'tables']
+
+    def get_methods(self):
+        return ['compare', 'create', 'drop', 'get_attributes', 'get_methods', 'get_table', 'get_tables', 'load_tables']
+
+    # Methods
     def get_columns(self):
         # logger.log(DEBUG, f"Table is: {table_name}")
         result = self.database.execute(f"SELECT column_name, ordinal_position, column_default, is_nullable, data_type, column_type, character_set_name, collation_name FROM information_schema.columns WHERE table_schema = '{self.schema.name}' AND table_name = '{self.name}' ORDER BY ordinal_position")
