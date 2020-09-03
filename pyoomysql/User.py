@@ -128,6 +128,13 @@ class User:
             "grants": self.grants
         },indent=2)
 
+    # Attributes and methods getters
+    def get_attributes(self):
+        return ['columns', 'database', 'exists', 'fqn', 'name', 'schema']
+
+    def get_methods(self):
+        return ['compare_data', 'delete', 'get_attributes', 'get_columns', 'get_insert_statement', 'get_methods', 'get_rowcount', 'insert', 'truncate', 'update']
+
     def check(self):
         response = self.database.execute(f"SELECT user, host FROM mysql.user WHERE user = '{self.username}' AND host = '{self.host}'")
         if response["rowcount"] == 1:

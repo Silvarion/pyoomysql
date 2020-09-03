@@ -1,18 +1,17 @@
 import pyoomysql
+import logging
 
-mydb = pyoomysql.Database(hostname="hekkamiahmsv1c.mylabserver.com", port=3306)
+mydb = pyoomysql.Database(hostname="hekkamiahmsv1c.mylabserver.com", port=3306, log_level=logging.DEBUG)
 mydb.connect(username="mysqldba", password="mysqlpass")
 
 mytestschema = pyoomysql.Schema(database=mydb, name="my_test_schema")
 mytestschema.create()
 mytestschema.exists
-script = """
--- Set schema
+mytesttable = pyoomysql.Table(schema=mytestschema, name="my_test_table")
+script = """-- Set schema
 use my_test_schema;
-
--- Show tables
-show tables;
-"""
+-- 
+show tables;"""
 mydb.run(script=script)
 mytestschema.drop()
 mytestschema.exists

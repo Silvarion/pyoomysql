@@ -179,13 +179,22 @@ class Database:
     ## Run Script
     def run(self, script):
         sql = ""
-        for line in script:
+        results = {}
+        counter = 1
+        for line in script.split(sep="\n"):
+            logger.debug(f"Current line: {line}")
             if line[:2] != "--":
                 sql += line.replace("\n"," ")
-                if line.find(";") == len(line -1):
-                    self.execute(command=sql)
-                    print(f"SQL to execute:\n{sql}")
+                logger.debug(f"Current sql string: {sql}")
+                if line.find(";") == len(line)-1:
+                    logger.debug(f"SQL to execute:\n{sql}")
+                    response = self.execute(command=sql)
+                    results[f"command_{counter}"] = {
+                        "command": sql,
+                        "response": response
+                    }
                     sql = ""
+        return results
 
     ## Schema methods
     def load_schemas(self):

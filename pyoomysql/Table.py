@@ -50,10 +50,10 @@ class Table:
 
     # Attributes and methods getters
     def get_attributes(self):
-        return ['database', 'name', 'charset', 'collation', 'tables']
+        return ['columns', 'database', 'exists', 'fqn', 'name', 'schema']
 
     def get_methods(self):
-        return ['compare', 'create', 'drop', 'get_attributes', 'get_methods', 'get_table', 'get_tables', 'load_tables']
+        return ['compare_data', 'delete', 'get_attributes', 'get_columns', 'get_insert_statement', 'get_methods', 'get_rowcount', 'insert', 'truncate', 'update']
 
     # Methods
     def get_columns(self):
@@ -151,7 +151,7 @@ class Table:
         return(full_result)
 
 
-    def update(self, id: list, columns: list, values: list):
+    def update(self):
         None
 
     def compare_data(self, table, batch_size=10000,print_to_console=False,fix_script=False,fix=False):
