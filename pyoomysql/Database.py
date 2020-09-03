@@ -178,6 +178,7 @@ class Database:
 
     ## Run Script
     def run(self, script):
+        sql = ""
         for line in script:
             if line[:2] != "--":
                 sql += line.replace("\n"," ")
