@@ -183,6 +183,24 @@ class Database:
             return None
 
     ## User Methods
+    def get_users(self):
+        result = self.execute(command=f"SELECT user, host FROM mysql.user")
+        response = {
+            "users": [],
+            "rowcount": result["rowcount"],
+            "start_time": result["start_time"],
+            "exec_time": result["exec_time"]
+        }
+        if len(result["rows"]) > 0:
+            for row in result["rows"]:
+                if type(row["user"]) is bytearray:
+                    current_user = User(database=self, username=row["user"].decode(), host=row["host"].decode())
+                    response["users"].append(current_user)
+                else:
+                    current_user = User(database=self, username=row["user"], host=row["host"])
+                    response["users"].append(current_user)
+        return response
+
     def get_user_by_name(self, username):
         response = []
         result = self.execute(f"SELECT user, host FROM mysql.user WHERE user = '{username}'")
