@@ -33,9 +33,9 @@ class Schema:
         if self.database.is_connected():
             schema = self.database.get_schema(name)
             if schema and len(schema) > 0:
-                self.name = schema[0]['schema_name']
-                self.charset = schema[0]['charset']
-                self.collation = schema[0]['collation']
+                self.name = schema['name']
+                self.charset = schema['charset']
+                self.collation = schema['collation']
                 self.tables = []
                 self.exists = True
             else:
@@ -46,7 +46,7 @@ class Schema:
                 self.exists = False
         else:
             logger.error("No connection to the database found. Please connect first")
-
+    # Python Object Overrides
     def __str__(self):
         if len(self.tables) == 0:
             self.load_tables()
@@ -58,12 +58,34 @@ class Schema:
             "tables": [self.tables]
         },indent=2)
 
+    # Attributes and methods getters
+    def get_attributes(self):
+        return ['database', 'name', 'charset', 'collation', 'tables']
+
+    def get_methods(self):
+        return ['compare', 'create', 'drop', 'get_attributes', 'get_methods', 'get_table', 'get_tables', 'load_tables']
+
+    # Methods
     def create(self):
         if not self.exists:
             logger.debug("Schema not found")
             logger.info("Creating schema...")
-            sql = f"CREATE SCHEMA '{self.name}' DEFAULT CHARACTER SET = '{self.charset}' COLLATE = '{self.collation}';"
+            sql = f"CREATE SCHEMA {self.name} DEFAULT CHARACTER SET = '{self.charset}' COLLATE = '{self.collation}';"
             self.database.execute(command=sql)
+            result = {
+                "rows": [],
+                "rowcount": 1,
+                "status": "ERROR"
+            }
+            for schema in self.database.get_schemas().keys():
+                if self.name == schema:
+                    self.exists = True
+                    result = {
+                        "rows": [],
+                        "rowcount": 1,
+                        "status": "OK"
+                    }
+            return result
         else:
             logger.warning("Schema already exists in the database. Please choose a different name")
 
@@ -71,8 +93,23 @@ class Schema:
         if self.exists:
             logger.debug("Schema found")
             logger.info("Droping schema...")
-            sql = f"DROP SCHEMA '{self.name}';"
+            sql = f"DROP SCHEMA {self.name};"
             self.database.execute(command=sql)
+            self.exists = False
+            result = {
+                "rows": [],
+                "rowcount": 1,
+                "status": "OK"
+            }
+            for schema in self.database.get_schemas().keys():
+                if self.name == schema:
+                    self.exists = True
+                    result = {
+                        "rows": [],
+                        "rowcount": 1,
+                        "status": "ERROR"
+                    }
+            return result
         else:
             logger.warning("Schema does not exist in the database. Nothing to do.")
 

@@ -2,7 +2,7 @@ from .Table import Table
 
 class Column:
     # Constructor
-    def __init__(self, table: Table, name: str, length: int, precision: int, nullable: bool, autoincrement: bool):
+    def __init__(self, table: Table, name: str, length: int, precision: int, nullable: bool, autoincrement: bool, charset: str = self.table.charset):
         pass
 
     # Python Object Overrides
