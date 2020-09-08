@@ -185,7 +185,6 @@ class User:
             "rows": []
         }
         if self.exists:
-
             # Update password
             if self.password[0] == '*' and len(self.password) == 41:
                 sql = f"SET PASSWORD FOR '{self.username}'@'{self.host}' = '{self.password}'"
@@ -193,6 +192,14 @@ class User:
                 sql = f"SET PASSWORD FOR '{self.username}'@'{self.host}' = PASSWORD('{self.password}')"
             logger.debug(f"SQL is: {sql}")
             response["rows"].append(self.database.execute(sql))
+            db_user = self.database.get_user_by_name_host(username=self.username, host = self.host)
+            # Update attributes
+            for attr in self.get_attributes():
+                if attr not in ['password', 'auth_string']:
+                    if getattr(self, attr) != getattr(db_user, attr):
+                        logger.debug(f"Updating {attr} for user '{self.username}'@'{self.host}'")
+                        sql = f"UPDATE mysql.user SET {attr} = {getattr(self, attr)} WHERE user = '{self.username} AND host = '{self.host}'; COMMIT;"
+                        self.database.execute(command=sql)
             self.check()
             # Roles
             # for role in self.roles:
