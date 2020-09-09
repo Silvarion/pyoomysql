@@ -1,8 +1,6 @@
 import json
 import logging
 import pyoomysql
-mydb = pyoomysql.Database(hostname="hekkamiahmsv1c.mylabserver.com", port=3306)
-mydb.connect(username="mysqldba", password="mysqlpass", log_level=logging.DEBUG)
 
 mydb = pyoomysql.Database(hostname="hekkamiahmsv1c.mylabserver.com", port=3306)
 mydb.connect(user="mysqldba", password="mysqlpass", log_level=logging.INFO)

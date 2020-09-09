@@ -36,7 +36,6 @@ class Database:
         self.port = port
         self.schema = schema
         self.auth_plugin = None
-        logger.setLevel(log_level)
 
     # Python Object overrides
     def __str__(self):
@@ -56,7 +55,8 @@ class Database:
 
     # Methods
 
-    def connect(self, username, password, schema='',auth_plugin=None,nolog=False, log_level=logging.INFO):
+    def connect(self, user, password, schema='',auth_plugin=None,nolog=False, log_level=logging.INFO):
+        logger.setLevel(log_level)
         cnx = None
         try:
             if auth_plugin:
