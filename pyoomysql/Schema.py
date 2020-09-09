@@ -1,5 +1,5 @@
 # Intra-package dependencies
-from .Table import Table
+from . import Table
 
 # General Imports
 import mysql.connector
