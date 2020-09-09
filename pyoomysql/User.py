@@ -1,5 +1,5 @@
 # Intra-package dependencies
-from .Database import Database
+from . import Database
 
 # General Imports
 import mysql.connector
@@ -50,21 +50,15 @@ class User:
             if password is None:
                 if type(result["rows"][0]["Password"]) is bytearray:
                     self.password = result["rows"][0]["Password"].decode()
-                elif type(result["rows"][0]["Password"]) is str:
+                else:
                     self.password = result["rows"][0]["Password"]
-                elif type(result["rows"][0]["Password"]) is None:
-                    logger.warning("No password defined for the user!!!")
-                    self.password = ""
             else:
                 self.password = password
             if password is None:
                 if type(result["rows"][0]["authentication_string"]) is bytearray:
                     self.auth_string = result["rows"][0]["authentication_string"].decode()
-                elif type(result["rows"][0]["authentication_string"]) is str:
-                    self.auth_string = result["rows"][0]["Password"]
-                elif type(result["rows"][0]["authentication_string"]) is None:
-                    logger.warning("No password defined for the user!!!")
-                    self.auth_string = ""
+                else:
+                    self.auth_string = result["rows"][0]["authentication_string"]
             else:
                 self.password = password
             self.ssl_type = result["rows"][0]["ssl_type"]
