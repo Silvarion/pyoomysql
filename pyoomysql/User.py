@@ -28,21 +28,21 @@ logger = logging.getLogger()
 
 # Class User
 class User:
-    def __init__(self, database: Database, username, host = '%', password = None):
-        result = database.execute(command=f"SELECT * FROM mysql.user WHERE user = '{username}' and host = '{host}';")
+    def __init__(self, database: Database, user, host = '%', password = None):
+        result = database.execute(command=f"SELECT * FROM mysql.user WHERE user = '{user}' and host = '{host}';")
         self.database = database
         self.roles = []
         self.grants = []
         if len(result["rows"]) == 0:
-            self.username = username
+            self.user = user
             self.host = host
             self.password = password
             self.exists = False
         elif len(result["rows"]) == 1:
             if type(result["rows"][0]["User"]) is bytearray:
-                self.username = result["rows"][0]["User"].decode()
+                self.user = result["rows"][0]["User"].decode()
             else:
-                self.username = result["rows"][0]["User"]
+                self.user = result["rows"][0]["User"]
             if type(result["rows"][0]["Host"]) is bytearray:
                 self.host = result["rows"][0]["Host"].decode()
             else:
@@ -122,7 +122,7 @@ class User:
 
     def __str__(self):
         return json.dumps({
-            "username": self.username,
+            "user": self.user,
             "host": self.host,
             "roles": self.roles,
             "grants": self.grants
@@ -130,21 +130,20 @@ class User:
 
     # Attributes and methods getters
     def get_attributes(self):
-        return ['columns', 'database', 'exists', 'fqn', 'name', 'schema']
+        return ['database', 'roles', 'grants', 'user', 'host', 'password', 'ssl_type', 'ssl_cipher', 'x509_issuer', 'x509_subject', 'plugin', 'select_priv', 'insert_priv', 'update_priv', 'delete_priv', 'create_priv', 'drop_priv', 'reload_priv', 'shutdown_priv', 'process_priv', 'file_priv', 'grant_priv', 'references_priv', 'index_priv', 'alter_priv', 'show_db_priv', 'super_priv', 'create_tmp_table_priv', 'lock_tables_priv', 'execute_priv', 'repl_slave_priv', 'repl_client_priv', 'create_view_priv', 'show_view_priv', 'create_routine_priv', 'alter_routine_priv', 'create_user_priv', 'event_priv', 'trigger_priv', 'create_tablespace_priv', 'max_questions', 'max_updates', 'max_connections', 'max_user_connections', 'exists']
 
     def get_methods(self):
-        return ['compare_data', 'delete', 'get_attributes', 'get_columns', 'get_insert_statement', 'get_methods', 'get_rowcount', 'insert', 'truncate', 'update']
+        return ['get_attributes', 'get_methods', 'reload', 'get_grants', 'create', 'drop', 'update']
 
-    def check(self):
-        response = self.database.execute(f"SELECT user, host FROM mysql.user WHERE user = '{self.username}' AND host = '{self.host}'")
-        if response["rowcount"] == 1:
-            self.exists = True
+    def reload(self):
+        loaded = User(database=self.database, user=self.user, host=self.host)
+        self = loaded
 
     def get_grants(self):
-        result = self.database.execute(f"SHOW GRANTS FOR '{self.username}'@'{self.host}'")
+        result = self.database.execute(f"SHOW GRANTS FOR '{self.user}'@'{self.host}'")
         if len(result["rows"]) > 0:
             for row in result["rows"]:
-                self.grants.append(row[f"Grants for {self.username}@{self.host}"])
+                self.grants.append(row[f"Grants for {self.user}@{self.host}"])
         else:
             logger.warning("No grants found!")
 
@@ -157,13 +156,13 @@ class User:
             self.update()
         else:
             # Create user
-            sql = f"CREATE USER '{self.username}'@'{self.host}' IDENTIFIED BY '{self.password}'"
+            sql = f"CREATE USER '{self.user}'@'{self.host}' IDENTIFIED BY '{self.password}'"
             logger.debug(f"SQL is: {sql}")
             response["rows"].append(self.database.execute(sql))
-            self.check()
+            self.reload()
             # Roles
             # for role in self.roles:
-            #     sql = f"GRANT {role} TO {self.username}@'{self.host}'"
+            #     sql = f"GRANT {role} TO {self.user}@'{self.host}'"
             #     response["rows"].append(self.database.execute(sql))
             # Grants
             # for grant in self.grants:
@@ -175,35 +174,66 @@ class User:
     def drop(self):
         if self.exists:
             # Drop user
-            sql = f"DROP USER {self.username}@'{self.host}'"
+            sql = f"DROP USER {self.user}@'{self.host}'"
             result = self.database.execute(sql)
             self.exists = False
             return result
+
+    def change_attr(self, attribute: str, new_value):
+        try:
+            logger.debug("Saving old value.")
+            old_value = getattr(self, attribute)
+            logger.debug(f"Old value: {old_value} saved. Setting new value.")
+            setattr(self, attribute, new_value)
+            logger.debug(f"New value set on {attribute}")
+            logger.debug("Building update statement.")
+            sql = f"UPDATE mysql.user SET {attribute} = "
+            if type(new_value) is str:
+                sql += f"'{new_value}' WHERE user = '{self.user}' AND host = '{old_value}'; COMMIT;"
+            else:
+                sql += f"{new_value} WHERE user = '{self.user}' AND host = '{old_value}'; COMMIT;"
+            response = self.database.execute(command=sql)
+            return response
+        except Exception as err:
+            logger.error(f"Catched exception:\n{err}")
+            logger.warning(f"Attribute {attribute} not found!")
 
     def update(self):
         response = {
             "rows": []
         }
         if self.exists:
+            # Check if the host is udpated and exists in the database
+            user_list = self.database.get_user_by_name(user=self.user)
+            if len(user_list) == 1:
+                loaded_user = user_list[0]
+            elif len(user_list) > 1:
+                loaded_user = None
+                for loaded_user in user_list:
+                    if loaded_user.host == self.host:
+                        break
+            else:
+                loaded_user = None
+            # Update host if it's different
+            if loaded_user is not None and self.host != loaded_user.host:
+                loaded_user.change_attr("host",self.host)
             # Update password
             if self.password[0] == '*' and len(self.password) == 41:
-                sql = f"SET PASSWORD FOR '{self.username}'@'{self.host}' = '{self.password}'"
+                sql = f"SET PASSWORD FOR '{self.user}'@'{self.host}' = '{self.password}'"
             else:
-                sql = f"SET PASSWORD FOR '{self.username}'@'{self.host}' = PASSWORD('{self.password}')"
+                sql = f"SET PASSWORD FOR '{self.user}'@'{self.host}' = PASSWORD('{self.password}')"
             logger.debug(f"SQL is: {sql}")
             response["rows"].append(self.database.execute(sql))
-            db_user = self.database.get_user_by_name_host(username=self.username, host = self.host)
+            db_user = self.database.get_user_by_name_host(user=self.user, host = self.host)
             # Update attributes
             for attr in self.get_attributes():
                 if attr not in ['password', 'auth_string']:
                     if getattr(self, attr) != getattr(db_user, attr):
-                        logger.debug(f"Updating {attr} for user '{self.username}'@'{self.host}'")
-                        sql = f"UPDATE mysql.user SET {attr} = {getattr(self, attr)} WHERE user = '{self.username} AND host = '{self.host}'; COMMIT;"
-                        self.database.execute(command=sql)
-            self.check()
+                        self.change_attr(attribute=attr, vew_value=getattr(self, attr))
+            self.reload()
             # Roles
             # for role in self.roles:
-            #     sql = f"GRANT {role} TO {self.username}@'{self.host}'"
+            #     sql = f"GRANT {role} TO {self.user}@'{self.host}'"
             #     response["rows"].append(self.database.execute(sql))
             # Grants
             # for grant in self.grants:

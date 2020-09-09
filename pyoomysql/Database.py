@@ -1,5 +1,5 @@
 # Intra-package dependencies
-from . import User
+from .User import User
 # General Imports
 import mysql.connector
 from mysql.connector import errorcode
@@ -48,25 +48,25 @@ class Database:
 
     # Attributes and methods getters
     def get_attributes(self):
-        return ['auth_plugin', 'connection', 'hostname', 'password', 'port', 'schema', 'username']
+        return ['auth_plugin', 'connection', 'hostname', 'password', 'port', 'schema', 'user']
 
     def get_methods(self):
         return ['connect', 'disconnect', 'execute', 'flush_privileges', 'get_attributes', 'get_methods', 'get_schema', 'get_schemas', 'get_user_by_name', 'get_user_by_name_host', 'get_version', 'is_connected', 'load_schemas', 'reconnect']
 
 
     # Methods
-    def connect(self, username, password, schema='',auth_plugin=None,nolog=False):
+    def connect(self, user, password, schema='',auth_plugin=None,nolog=False):
         cnx = None
         try:
             if auth_plugin:
                 logger.debug("Using auth_plugin for authentication")
-                cnx = mysql.connector.connect(user=username, password=password, host=self.hostname, port=self.port, database=schema,auth_plugin=auth_plugin)
+                cnx = mysql.connector.connect(user=user, password=password, host=self.hostname, port=self.port, database=schema,auth_plugin=auth_plugin)
             else:
                 logger.debug("Using defaults for authentication")
-                cnx = mysql.connector.connect(user=username, password=password, host=self.hostname, port=self.port, database=schema)
+                cnx = mysql.connector.connect(user=user, password=password, host=self.hostname, port=self.port, database=schema)
             if not nolog:
                 logger.info(f'Database {self.schema} on {self.hostname} connected')
-            self.username = username
+            self.user = user
             self.password = password
             self.auth_plugin = auth_plugin
         except mysql.connector.Error as err:
@@ -104,11 +104,11 @@ class Database:
             self.connection = None
 
     def reconnect(self):
-        if "username" in dir(self) and "password" in dir(self):
+        if "user" in dir(self) and "password" in dir(self):
             if self.auth_plugin:
-                self.connect(username=self.username, password=self.password, auth_plugin=self.auth_plugin, nolog=True)
+                self.connect(user=self.user, password=self.password, auth_plugin=self.auth_plugin, nolog=True)
             else:
-                self.connect(username=self.username, password=self.password, nolog=True)
+                self.connect(user=self.user, password=self.password, nolog=True)
 
     # Execute single command
     def execute(self,command):
@@ -222,24 +222,35 @@ class Database:
             return None
 
     ## User Methods
-    def get_user_by_name(self, username):
+    def get_users(self):
         response = []
-        result = self.execute(f"SELECT user, host FROM mysql.user WHERE user = '{username}'")
+        result = self.execute(f"SELECT user, host FROM mysql.user")
         if len(result["rows"]) > 0:
             for row in result["rows"]:
                 if type(row["user"]) is bytearray:
-                    response.append(User(database=self, username=row["user"].decode(), host=row["host"].decode()))
+                    response.append(User(database=self, user=row["user"].decode(), host=row["host"].decode()))
                 else:
-                    response.append(User(database=self, username=row["user"], host=row["host"]))
+                    response.append(User(database=self, user=row["user"], host=row["host"]))
         return response
 
-    def get_user_by_name_host(self, username, host):
-        result = self.execute(f"SELECT user, host FROM mysql.user WHERE user = '{username}' AND host = '{host}'")
+    def get_user_by_name(self, user):
+        response = []
+        result = self.execute(f"SELECT user, host FROM mysql.user WHERE user = '{user}'")
+        if len(result["rows"]) > 0:
+            for row in result["rows"]:
+                if type(row["user"]) is bytearray:
+                    response.append(User(database=self, user=row["user"].decode(), host=row["host"].decode()))
+                else:
+                    response.append(User(database=self, user=row["user"], host=row["host"]))
+        return response
+
+    def get_user_by_name_host(self, user, host):
+        result = self.execute(f"SELECT user, host FROM mysql.user WHERE user = '{user}' AND host = '{host}'")
         if result["rowcount"] == 1:
             if type(result["rows"][0]["user"]) is bytearray:
-                return User(database=self, username=result["rows"][0]["user"].decode(), host=result["rows"][0]["host"].decode())
+                return User(database=self, user=result["rows"][0]["user"].decode(), host=result["rows"][0]["host"].decode())
             else:
-                return User(database=self, username=result["rows"][0]["user"], host=result["rows"][0]["host"])
+                return User(database=self, user=result["rows"][0]["user"], host=result["rows"][0]["host"])
 
     # def get_users(self):
     #     return self.execute(f"SELECT user, host FROM mysql.user;")
