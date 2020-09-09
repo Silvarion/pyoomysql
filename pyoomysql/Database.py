@@ -31,12 +31,12 @@ class Database:
     connection = None
 
     # Creator
-    def __init__(self, hostname, port=3306, schema='information_schema', log_level=logging.INFO):
+    def __init__(self, hostname, port=3306, schema='information_schema'):
         self.hostname = hostname
         self.port = port
         self.schema = schema
         self.auth_plugin = None
-        logger.setLevel(log_level)
+        logger.setLevel(logging.INFO)
 
     # Python Object overrides
     def __str__(self):
@@ -55,7 +55,9 @@ class Database:
 
 
     # Methods
-    def connect(self, user, password, schema='',auth_plugin=None,nolog=False):
+    def connect(self, user, password, schema='',auth_plugin=None,nolog=False, log_level=logging.INFO):
+        logger.setLevel(log_level)
+        self.log_level = log_level
         cnx = None
         try:
             if auth_plugin:
@@ -106,9 +108,9 @@ class Database:
     def reconnect(self):
         if "user" in dir(self) and "password" in dir(self):
             if self.auth_plugin:
-                self.connect(user=self.user, password=self.password, auth_plugin=self.auth_plugin, nolog=True)
+                self.connect(user=self.user, password=self.password, auth_plugin=self.auth_plugin, nolog=True, log_level = self.log_level)
             else:
-                self.connect(user=self.user, password=self.password, nolog=True)
+                self.connect(user=self.user, password=self.password, nolog=True, log_level = self.log_level)
 
     # Execute single command
     def execute(self,command):
