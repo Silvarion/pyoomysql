@@ -31,11 +31,12 @@ class Database:
     connection = None
 
     # Creator
-    def __init__(self, hostname, port=3306, schema='information_schema'):
+    def __init__(self, hostname, port=3306, schema='information_schema', log_level=logging.INFO):
         self.hostname = hostname
         self.port = port
         self.schema = schema
         self.auth_plugin = None
+        logger.setLevel(log_level)
 
     # Python Object overrides
     def __str__(self):
@@ -54,9 +55,7 @@ class Database:
 
 
     # Methods
-
-    def connect(self, user, password, schema='',auth_plugin=None,nolog=False, log_level=logging.INFO):
-        logger.setLevel(log_level)
+    def connect(self, user, password, schema='',auth_plugin=None,nolog=False):
         cnx = None
         try:
             if auth_plugin:
@@ -224,25 +223,6 @@ class Database:
 
     ## User Methods
     def get_users(self):
-        result = self.execute(command=f"SELECT user, host FROM mysql.user")
-        logger.debug(f"Current result form DB: \n{result}")
-        response = {
-            "users": [],
-            "rowcount": result["rowcount"],
-            "start_time": result["start_time"],
-            "exec_time": result["exec_time"]
-        }
-        logger.debug(f"Current response: \n{response}")
-        if len(result["rows"]) > 0:
-            for row in result["rows"]:
-                logger.debug(f"Processing row: \n{row}")
-                if type(row["user"]) is bytearray:
-                    response["users"].append(User(database=self, username=row["user"].decode(), host=row["host"].decode()))
-                else:
-                    response["users"].append(User(database=self, username=row["user"], host=row["host"]))
-        return response
-
-    def get_user_by_name(self, username):
         response = []
         result = self.execute(f"SELECT user, host FROM mysql.user")
         if len(result["rows"]) > 0:
@@ -271,6 +251,9 @@ class Database:
                 return User(database=self, user=result["rows"][0]["user"].decode(), host=result["rows"][0]["host"].decode())
             else:
                 return User(database=self, user=result["rows"][0]["user"], host=result["rows"][0]["host"])
+
+    # def get_users(self):
+    #     return self.execute(f"SELECT user, host FROM mysql.user;")
 
     # Flush Privileges
     def flush_privileges(self):
