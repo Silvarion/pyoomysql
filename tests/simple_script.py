@@ -1,8 +1,13 @@
-import pyoomysql
+import json
 import logging
+import pyoomysql
+mydb = pyoomysql.Database(hostname="hekkamiahmsv1c.mylabserver.com", port=3306)
+mydb.connect(username="mysqldba", password="mysqlpass", log_level=logging.DEBUG)
 
-mydb = pyoomysql.Database(hostname="hekkamiahmsv1c.mylabserver.com", port=3306, log_level=logging.INFO)
-mydb.connect(user="mysqldba", password="mysqlpass")
+mydb = pyoomysql.Database(hostname="hekkamiahmsv1c.mylabserver.com", port=3306)
+mydb.connect(user="mysqldba", password="mysqlpass", log_level=logging.INFO)
+user_list = mydb.get_users()
+
 
 mytestschema = pyoomysql.Schema(database=mydb, name="my_test_schema")
 mytestschema.create()
