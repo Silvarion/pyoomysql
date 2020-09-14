@@ -115,7 +115,9 @@ class Database:
     # Execute single command
     def execute(self,command):
         self.reconnect()
-        resultset = {}
+        resultset = {
+            'rows': []
+        }
         if self.is_connected():
             logger.debug('Database is connected. Trying to create cursor')
             try:
@@ -129,9 +131,6 @@ class Database:
                 timer_end = datetime.now()
                 timer_elapsed = timer_end - timer_start
                 logger.debug('Command executed')
-                resultset = {
-                    'rows': []
-                }
                 if command.upper().find("SELECT") == 0:
                     rows = cursor.fetchall()
                     logger.debug(f'Fetched {cursor.rowcount} rows')
@@ -254,12 +253,40 @@ class Database:
             else:
                 return User(database=self, user=result["rows"][0]["user"], host=result["rows"][0]["host"])
 
-    # def get_users(self):
-    #     return self.execute(f"SELECT user, host FROM mysql.user;")
-
     # Flush Privileges
     def flush_privileges(self):
         return self.execute(command = "FLUSH PRIVILEGES;")
+
+    # Replication
+    def is_replica(self):
+        result = self.get_replica_status()
+        if result is not None:
+            return True
+        else:
+            return False
+
+    def get_replica_status(self):
+        result = self.execute(command="SHOW SLAVE STATUS")
+        if len(result["rows"]) == 1:
+            return result["rows"][0]
+    
+    def configure_replica(self, primary_host, replica_user, replica_pswd):
+        pass
+
+    def start_replica(self):
+        return self.execute(command="START SLAVE")
+
+    def stop_replica(self):
+        return self.execute(command="STOP SLAVE")
+    
+    def skip_replica_error(self, amount=1):
+        logger.info("Stopping replication process...")
+        self.stop_replica()
+        logger.info(f"Setting SQL_SLAVE_SKIP_COUNTER to {amount}")
+        self.execute(command=f"SET GLOBAL SQL_SLAVE_SKIP_COUNTER = {amount}")
+        logger.info("Starting replication process again...")
+        self.start_replica()
+        logger.info("All done.")
 
     # Check if there's an active connection to the database
     def is_connected(self):
