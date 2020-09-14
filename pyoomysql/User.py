@@ -229,7 +229,7 @@ class User:
             for attr in self.get_attributes():
                 if attr not in ['password', 'auth_string']:
                     if getattr(self, attr) != getattr(db_user, attr):
-                        self.change_attr(attribute=attr, vew_value=getattr(self, attr))
+                        self.change_attr(attribute=attr, new_value=getattr(self, attr))
             self.reload()
             # Roles
             # for role in self.roles:
