@@ -269,9 +269,16 @@ class Database:
         result = self.execute(command="SHOW SLAVE STATUS")
         if len(result["rows"]) == 1:
             return result["rows"][0]
+        else:
+            return None
     
-    def configure_replica(self, primary_host, replica_user, replica_pswd):
-        pass
+    def configure_replica(self, primary_host, primary_port, replica_user, replica_pswd, binlog_file=None, binlog_pos=None):
+        sql = f"CHANGE MASTER TO MASTER_HOST='{primary_host}', MASTER_PORT={primary_port}, MASTER_USER='{replica_user}', MASTER_PASSWORD='{replica_pswd}' "
+        if binlog_file is not None:
+            sql+=f"MASTER_LOG_FILE='{binlog_file}' "
+        if binlog_pos is not None:
+            sql+=f"MASTER_LOG_POS={binlog_pos}"
+        return self.execute(sql)
 
     def start_replica(self):
         return self.execute(command="START SLAVE")
