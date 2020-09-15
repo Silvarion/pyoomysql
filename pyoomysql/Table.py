@@ -1,5 +1,5 @@
 # Intra-package dependencies
-from .util.sql import list_to_sql
+from .util.sql import list_to_column_list,list_to_sql,parse_condition
 # General Imports
 import mysql.connector
 from mysql.connector import errorcode
@@ -98,17 +98,57 @@ class Table:
     def truncate(self):
         return self.database.execute(f'TRUNCATE TABLE {self.fqn}')
 
+    """
+    Table.select(filters: < List_of_Conditions >, batch_size, delay)
+
+    List_of_conditions is a list of dictionaries with the following structure:
+    {
+        "prefix": optional prefix and/or,
+        "column": <name of the column>,
+        "operator": [SQL operator: "BETWEEN", "IN", "LIKE", "=", "<", ">", ...],
+        "value": <values> or list_of_values
+    }
+    """
+    def select(self, columns="*", filters=[]):
+        if columns == "*":
+            column_list=""
+            for column_name in self.get_columns().keys():
+                column_list+=f"{column_name}, "
+            column_list = column_list[:(len(column_list)-2)]
+        else:
+            column_list = list_to_column_list(columns)
+        if len(filters) == 0:
+            logger.warning("No Filterss found! Selecting all rows")
+        else:
+            condition_count = 0
+            sql = f"SELECT {column_list} FROM {self.fqn} "
+            for condition in filters:
+                condition_count+=1
+                logger.debug(f"Condition value type is: {type(condition['value'])}")
+                if condition_count == 1 and "prefix" not in condition.keys():
+                    sql+=f"WHERE {parse_condition(condition)} "
+                elif condition_count == 1 and "prefix" in condition.keys():
+                    sql+=f"WHERE {parse_condition(condition)[len(condition['prefix']):]} "
+                elif condition_count > 1 and "prefix" not in condition.keys():
+                    sql+=f"AND {parse_condition(condition)}"
+                else:
+                    sql+=f"{parse_condition(condition)} "
+            logger.debug(f"Full command: {sql};")
+            return self.database.execute(command=f"{sql};")
+        
+
     def insert(self, rows: dict):
         pass
 
     """
-    Table.delete(rows: < List_of_Conditions >, batch_size, delay)
+    Table.delete(filters: < List_of_Conditions >, batch_size, delay)
 
     List_of_conditions is a list of dictionaries with the following structure:
     {
+        "prefix": optional prefix and/or,
         "column": <name of the column>,
         "operator": [SQL operator: "IN", "LIKE", "=", "<", ">", ...],
-        "value": <value> or list_of_values
+        "values": <value> or list_of_values
     }
     """
     def delete(self, filters: list):
@@ -131,7 +171,9 @@ class Table:
                     else:
                         sql+=f" AND {condition['column']} {condition['operator']} '{condition['value']}' "
                 elif type(condition["value"]) is list and condition["operator"].upper() == "IN":
-                        sql+=f"WHERE {condition['column']} {condition['operator']} {list_to_sql(condition['value'])}"
+                    sql+=f"WHERE {condition['column']} {condition['operator']} {list_to_sql(condition['value'])} "
+                elif type(condition["value"]) is list and condition["operator"].upper() == "BETWEEN":
+                    sql+=f"WHERE {condition['column']} {condition['operator']} {list_to_sql(condition['value'][0])} AND {list_to_sql(condition['value'][1])} "
                 else:
                     if condition_count > 1:
                         sql+=f"WHERE {condition['column']} {condition['operator']} {condition['value']} "
