@@ -47,14 +47,14 @@ class User:
                 self.host = result["rows"][0]["Host"].decode()
             else:
                 self.host = result["rows"][0]["Host"]
-            if password is None:
+            if password is None and "Password" in result["rows"][0].keys():
                 if type(result["rows"][0]["Password"]) is bytearray:
                     self.password = result["rows"][0]["Password"].decode()
                 else:
                     self.password = result["rows"][0]["Password"]
             else:
                 self.password = password
-            if password is None:
+            if password is None and "authentication_string" in result["rows"][0].keys():
                 if type(result["rows"][0]["authentication_string"]) is bytearray:
                     self.auth_string = result["rows"][0]["authentication_string"].decode()
                 else:
