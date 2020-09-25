@@ -41,3 +41,12 @@ def parse_condition(condition: dict):
     else:
         result+=f"{condition['value']} "
     return result
+
+def grant_to_dict(grant: str):
+    privs = grant[(grant.find("GRANT")+5):grant.find("ON")].strip()
+    obj = grant[(grant.find("ON")+2):grant.find("TO")].strip()
+    grant = {
+        "privs": privs,
+        "object": obj
+    }
+    return grant

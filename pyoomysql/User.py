@@ -1,5 +1,6 @@
 # Intra-package dependencies
 from . import Database
+from .util.sql import grant_to_dict
 
 # General Imports
 import mysql.connector
@@ -143,7 +144,15 @@ class User:
         result = self.database.execute(f"SHOW GRANTS FOR '{self.user}'@'{self.host}'")
         if len(result["rows"]) > 0:
             for row in result["rows"]:
-                self.grants.append(row[f"Grants for {self.user}@{self.host}"])
+                grant = row[f"Grants for {self.user}@{self.host}"]
+                privs = grant[(grant.find("GRANT")+5):grant.find("ON")].strip()
+                obj = grant[(grant.find("ON")+2):grant.find("TO")].strip()
+                grant = {
+                    "privs": privs,
+                    "object": obj
+                }
+                self.grants.append(grant)
+                # self.grants.append(grant)
         else:
             logger.warning("No grants found!")
 
@@ -161,15 +170,21 @@ class User:
             response["rows"].append(self.database.execute(sql))
             self.reload()
             # Roles
-            # for role in self.roles:
-            #     sql = f"GRANT {role} TO {self.user}@'{self.host}'"
-            #     response["rows"].append(self.database.execute(sql))
+            for role in self.roles:
+                sql = f"GRANT {role} TO {self.user}@'{self.host}'"
+                response["rows"].append(self.database.execute(sql))
             # Grants
-            # for grant in self.grants:
-            #     response["rows"].append(self.database.execute(grant))
+            for grant in self.grants:
+                if type(grant) is str:
+                    response["rows"].append(self.database.execute(grant))
+                elif type(grant) is dict:
+                    sql = f"GRANT {grant['privs']} "
+                    if grant["object"] != "":
+                        sql+= f"ON {grant['object']} "
+                    sql += f"TO {self.user}@{self.host}"
+                    response["rows"].append(self.database.execute(sql))
             # Flush Privileges
             self.database.flush_privileges()
-
 
     def drop(self):
         if self.exists:
@@ -230,16 +245,34 @@ class User:
                 if attr not in ['password', 'auth_string']:
                     if getattr(self, attr) != getattr(db_user, attr):
                         self.change_attr(attribute=attr, new_value=getattr(self, attr))
-            self.reload()
-            # Roles
-            # for role in self.roles:
-            #     sql = f"GRANT {role} TO {self.user}@'{self.host}'"
-            #     response["rows"].append(self.database.execute(sql))
             # Grants
-            # for grant in self.grants:
-            #     response["rows"].append(self.database.execute(grant))
-            # Flush Privileges
+            for grant in self.grants:
+                if type(grant) is str:
+                    grant = grant_to_dict(grant)
+                # if type(grant) is dict:
+                if grant not in loaded_user.grants:
+                    sql = f"GRANT {grant['privs']} "
+                    if grant["object"] != "":
+                        sql+= f"ON {grant['object']} "
+                    sql += f"TO {self.user}@{self.host}"
+                    logger.debug(f"Current SQL: {sql}")
+                    response["rows"].append(self.database.execute(sql))
             self.database.flush_privileges()
+            # Revokes
+            for grant in loaded_user.grants:
+                if type(grant) is str:
+                    grant = grant_to_dict(grant)
+                # if type(grant) is dict:
+                if grant not in self.grants:
+                    sql = f"REVOKE {grant['privs']} "
+                    if grant["object"] != "":
+                        sql+= f"ON {grant['object']} "
+                    sql += f"FROM {self.user}@{self.host}"
+                    logger.debug(f"Current SQL: {sql}")
+                    response["rows"].append(self.database.execute(sql))
+            self.database.flush_privileges()
+
+            self.reload()
         else:
             logger.info("User doesn't exists, CREATING instead")
             self.create()
