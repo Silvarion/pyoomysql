@@ -307,7 +307,7 @@ class Database:
         return self.execute(command=f"SELECT variable_name, variable_value FROM information_schema.global_variables WHERE variable_name = '{variable_name}'")["rows"][0]
 
     def get_global_variables_like(self, variable_name):
-        return self.execute(command=f"SELECT variable_name, variable_value FROM information_schema.global_variables WHERE variable_name LIKE '%{variable_name}%'")["rows"][0]
+        return self.execute(command=f"SELECT variable_name, variable_value FROM information_schema.global_variables WHERE variable_name LIKE '%{variable_name}%'")["rows"]
     
     def set_global_variable(self, variable_name, variable_value):
         return self.execute(command=f"SET GLOBAL {variable_name} = {variable_value}")
