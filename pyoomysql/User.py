@@ -242,7 +242,7 @@ class User:
             db_user = self.database.get_user_by_name_host(user=self.user, host = self.host)
             # Update attributes
             for attr in self.get_attributes():
-                if attr not in ['password', 'auth_string']:
+                if attr not in ['password', 'auth_string', 'grants']:
                     if getattr(self, attr) != getattr(db_user, attr):
                         self.change_attr(attribute=attr, new_value=getattr(self, attr))
             # Grants
