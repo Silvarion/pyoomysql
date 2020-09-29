@@ -176,13 +176,16 @@ class User:
             # Grants
             for grant in self.grants:
                 if type(grant) is str:
-                    response["rows"].append(self.database.execute(grant))
-                elif type(grant) is dict:
+                    grant = grant_to_dict(grant)
+                # if type(grant) is dict:
+                if grant not in loaded_user.grants:
                     sql = f"GRANT {grant['privs']} "
                     if grant["object"] != "":
                         sql+= f"ON {grant['object']} "
-                    sql += f"TO {self.user}@{self.host}"
+                    sql += f"TO {self.user}@'{self.host}'"
+                    logger.debug(f"Current SQL: {sql}")
                     response["rows"].append(self.database.execute(sql))
+            self.database.flush_privileges()
             # Flush Privileges
             self.database.flush_privileges()
 
@@ -254,7 +257,7 @@ class User:
                     sql = f"GRANT {grant['privs']} "
                     if grant["object"] != "":
                         sql+= f"ON {grant['object']} "
-                    sql += f"TO {self.user}@{self.host}"
+                    sql += f"TO {self.user}@'{self.host}'"
                     logger.debug(f"Current SQL: {sql}")
                     response["rows"].append(self.database.execute(sql))
             self.database.flush_privileges()
@@ -267,7 +270,7 @@ class User:
                     sql = f"REVOKE {grant['privs']} "
                     if grant["object"] != "":
                         sql+= f"ON {grant['object']} "
-                    sql += f"FROM {self.user}@{self.host}"
+                    sql += f"FROM {self.user}@'{self.host}'"
                     logger.debug(f"Current SQL: {sql}")
                     response["rows"].append(self.database.execute(sql))
             self.database.flush_privileges()
