@@ -182,7 +182,9 @@ class Database:
         sql = ""
         results = {}
         counter = 1
-        for line in script.split(sep="\n"):
+        if type(script) is str:
+            script = script.split(sep="\n")
+        for line in script:
             logger.debug(f"Current line: {line}")
             if line[:2] != "--":
                 sql += line.replace("\n"," ")
