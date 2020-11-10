@@ -245,29 +245,29 @@ class User:
                 if attr not in ['password', 'auth_string']:
                     if getattr(self, attr) != getattr(db_user, attr):
                         self.change_attr(attribute=attr, new_value=getattr(self, attr))
-            # Grants
-            for grant in self.grants:
-                if type(grant) is str:
-                    grant = grant_to_dict(grant)
+            # Privileges
+            for loaded_grant in loaded_user.grants:
+                if type(loaded_grant) is str:
+                    loaded_grant = grant_to_dict(loaded_grant)
                 # if type(grant) is dict:
-                if grant not in loaded_user.grants:
-                    sql = f"GRANT {grant['privs']} "
-                    if grant["object"] != "":
-                        sql+= f"ON {grant['object']} "
-                    sql += f"TO {self.user}@{self.host}"
-                    logger.debug(f"Current SQL: {sql}")
-                    response["rows"].append(self.database.execute(sql))
-            self.database.flush_privileges()
-            # Revokes
-            for grant in loaded_user.grants:
-                if type(grant) is str:
-                    grant = grant_to_dict(grant)
-                # if type(grant) is dict:
-                if grant not in self.grants:
-                    sql = f"REVOKE {grant['privs']} "
-                    if grant["object"] != "":
-                        sql+= f"ON {grant['object']} "
-                    sql += f"FROM {self.user}@{self.host}"
+                logger.debug(f"Loaded User: {loaded_user.user} Current grant: {loaded_grant}")
+                for self_grant in self.grants:
+                    logger.debug(f"Current User: {self.user} Current grant: {self.grants}")
+                    if self_grant['object'] == loaded_grant['object']:
+                        if len(self_grant["privs"]) < len(loaded_grant["privs"]):
+                            revoked_list = loaded_grant["privs"].split(",") - self_grant["privs"].split(",")
+                            revoked = ",".join(revoked_list)
+                            sql = f"REVOKE {revoked} "
+                            if self_grant["object"] != "":
+                                sql+= f"ON {self_grant['object']} "
+                            sql += f"FROM {self.user}@{self.host}"
+                        elif len(self_grant["privs"]) > len(loaded_grant["privs"]):
+                            granted_list = self_grant["privs"].split(",") - loaded_grant["privs"].split(",")
+                            granted = ",".join(granted_list)
+                            sql = f"GRANT {granted} "
+                            if self_grant["object"] != "":
+                                sql+= f"ON {self_grant['object']} "
+                            sql += f"FROM {self.user}@{self.host}"
                     logger.debug(f"Current SQL: {sql}")
                     response["rows"].append(self.database.execute(sql))
             self.database.flush_privileges()
