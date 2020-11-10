@@ -176,13 +176,15 @@ class User:
             # Grants
             for grant in self.grants:
                 if type(grant) is str:
-                    response["rows"].append(self.database.execute(grant))
-                elif type(grant) is dict:
-                    sql = f"GRANT {grant['privs']} "
-                    if grant["object"] != "":
-                        sql+= f"ON {grant['object']} "
-                    sql += f"TO {self.user}@{self.host}"
-                    response["rows"].append(self.database.execute(sql))
+                    grant = grant_to_dict(grant)
+                # if type(grant) is dict:
+                sql = f"GRANT {grant['privs']} "
+                if grant["object"] != "":
+                    sql+= f"ON {grant['object']} "
+                sql += f"TO {self.user}@'{self.host}'"
+                logger.debug(f"Current SQL: {sql}")
+                response["rows"].append(self.database.execute(sql))
+            self.database.flush_privileges()
             # Flush Privileges
             self.database.flush_privileges()
 
@@ -242,7 +244,7 @@ class User:
             db_user = self.database.get_user_by_name_host(user=self.user, host = self.host)
             # Update attributes
             for attr in self.get_attributes():
-                if attr not in ['password', 'auth_string']:
+                if attr not in ['password', 'auth_string', 'grants']:
                     if getattr(self, attr) != getattr(db_user, attr):
                         self.change_attr(attribute=attr, new_value=getattr(self, attr))
             # Privileges
