@@ -244,8 +244,8 @@ class User:
                     sql = f"SET PASSWORD FOR '{self.user}'@'{self.host}' = '{self.password}'"
                 else:
                     sql = f"SET PASSWORD FOR '{self.user}'@'{self.host}' = PASSWORD('{self.password}')"
-            logger.debug(f"SQL is: {sql}")
-            response["rows"].append(self.database.execute(sql))
+                logger.debug(f"SQL is: {sql}")
+                response["rows"].append(self.database.execute(sql))
             db_user = self.database.get_user_by_name_host(user=self.user, host = self.host)
             # Update attributes
             for attr in self.get_attributes():
