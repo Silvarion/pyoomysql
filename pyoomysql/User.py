@@ -294,7 +294,7 @@ class User:
                         break
                 if not found:
                     sql = f"REVOKE {local['privs']} ON {local['object']} TO {self.user}@{self.host}"
-                    self.database.execute(sql)
+                    response["rows"].append(self.database.execute(sql))
             # Objects with changed privileges
             for loaded_grant in db_user.grants:
                 logger.debug(f"Grant type is {type(loaded_grant)}")
@@ -325,8 +325,8 @@ class User:
                             if self_grant["object"] != "":
                                 sql+= f"ON {self_grant['object']} "
                             sql += f"TO {self.user}@{self.host}"
-                    logger.debug(f"Current SQL: {sql}")
-                    response["rows"].append(self.database.execute(sql))
+                        logger.debug(f"Current SQL: {sql}")
+                        response["rows"].append(self.database.execute(sql))
             self.database.flush_privileges()
 
             self.reload()
