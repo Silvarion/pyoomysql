@@ -320,7 +320,8 @@ class User:
                         logger.warning(f"Privileges changed for user {self.user}@'{self.host}' on object {self_grant['object']}")
                         new_privs = set(self_grant["privs"].lower().split(","))
                         old_privs = set(loaded_grant["privs"].lower().split(","))
-                        revoked_list = list(old_privs.difference_update(new_privs))
+                        revoked_list = list(old_privs.difference(new_privs))
+                        logger.debug
                         if not revoked_list is None:
                             revoked = ",".join(revoked_list)
                             sql = f"REVOKE {revoked} "
@@ -332,7 +333,7 @@ class User:
                         # Grants
                         new_privs = set(self_grant["privs"].lower().split(","))
                         old_privs = set(loaded_grant["privs"].lower().split(","))
-                        granted_list = list(new_privs.difference_update(old_privs))
+                        granted_list = list(new_privs.difference(old_privs))
                         if not granted_list is None:
                             granted = ",".join(granted_list)
                             sql = f"GRANT {granted} "
