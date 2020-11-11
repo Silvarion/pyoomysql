@@ -144,6 +144,7 @@ class User:
 
     # Grants management
     def get_grants(self):
+        logger = logging.getLogger(name="User.get_grants")
         result = self.database.execute(f"SHOW GRANTS FOR '{self.user}'@'{self.host}'")
         if len(result["rows"]) > 0:
             for row in result["rows"]:
@@ -183,6 +184,7 @@ class User:
             self.set_grant(sql)
 
     def create(self):
+        logger = logging.getLogger(name="User.create")
         response = {
             "rows": []
         }
@@ -216,14 +218,17 @@ class User:
             self.database.flush_privileges()
 
     def drop(self):
+        logger = logging.getLogger(name="User.drop")
         if self.exists:
             # Drop user
             sql = f"DROP USER {self.user}@'{self.host}'"
+            logger.debug(f"SQL: {sql}")
             result = self.database.execute(sql)
             self.exists = False
             return result
 
     def change_attr(self, attribute: str, new_value):
+        logger = logging.getLogger(name="User.change_attr")
         try:
             logger.debug("Saving old value.")
             old_value = getattr(self, attribute)
@@ -243,6 +248,7 @@ class User:
             logger.warning(f"Attribute {attribute} not found!")
 
     def update(self):
+        logger = logging.getLogger(name="User.update")
         response = {
             "rows": []
         }
