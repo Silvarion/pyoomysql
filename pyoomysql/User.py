@@ -196,7 +196,7 @@ class User:
             sql = f"CREATE USER '{self.user}'@'{self.host}' IDENTIFIED BY '{self.password}'"
             logger.debug(f"SQL is: {sql}")
             response["rows"].append(self.database.execute(sql))
-            self.reload()
+            self.exists = True
             # Roles
             for role in self.roles:
                 sql = f"GRANT {role} TO {self.user}@'{self.host}'"
@@ -217,6 +217,7 @@ class User:
                 response["rows"].append(self.database.execute(sql))
             # Flush Privileges
             self.database.flush_privileges()
+            self.reload()
 
     def drop(self):
         logger = logging.getLogger(name="User.drop")
