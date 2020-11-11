@@ -318,18 +318,20 @@ class User:
                     if self_grant['object'] == loaded_grant['object']:
                         if len(self_grant["privs"]) < len(loaded_grant["privs"]):
                             revoked_list = set(loaded_grant["privs"].lower().split(",")).difference_update(set(self_grant["privs"].lower().split(",")))
-                            revoked = ",".join(list(revoked_list))
-                            sql = f"REVOKE {revoked} "
-                            if self_grant["object"] != "":
-                                sql+= f"ON {self_grant['object']} "
-                            sql += f"FROM {self.user}@'{self.host}'"
+                            if not revoked is None:
+                                revoked = ",".join(list(revoked_list))
+                                sql = f"REVOKE {revoked} "
+                                if self_grant["object"] != "":
+                                    sql+= f"ON {self_grant['object']} "
+                                sql += f"FROM {self.user}@'{self.host}'"
                         elif len(self_grant["privs"]) > len(loaded_grant["privs"]):
                             granted_list = set(self_grant["privs"].lower().split(",")).difference_update(set(loaded_grant["privs"].lower().split(",")))
-                            granted = ",".join(list(granted_list))
-                            sql = f"GRANT {granted} "
-                            if self_grant["object"] != "":
-                                sql+= f"ON {self_grant['object']} "
-                            sql += f"TO {self.user}@'{self.host}'"
+                            if not granted is None:
+                                granted = ",".join(list(granted_list))
+                                sql = f"GRANT {granted} "
+                                if self_grant["object"] != "":
+                                    sql+= f"ON {self_grant['object']} "
+                                sql += f"TO {self.user}@'{self.host}'"
                         logger.debug(f"Current SQL: {sql}")
                         if len(sql) > 0:
                             response["rows"].append(self.database.execute(sql))
