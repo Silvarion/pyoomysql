@@ -305,7 +305,7 @@ class User:
                         found = True
                         break
                 if not found:
-                    sql = f"REVOKE {local['privs']} ON {local['object']} TO {self.user}@'{self.host}'"
+                    sql = f"REVOKE {local['privs']} ON {local['object']} FROM {self.user}@'{self.host}'"
                     response["rows"].append(self.database.execute(sql))
             # Objects with changed privileges
             for loaded_grant in db_user.grants:
