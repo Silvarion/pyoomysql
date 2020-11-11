@@ -237,10 +237,13 @@ class User:
             if loaded_user is not None and self.host != loaded_user.host:
                 loaded_user.change_attr("host",self.host)
             # Update password
-            if self.password[0] == '*' and len(self.password) == 41:
-                sql = f"SET PASSWORD FOR '{self.user}'@'{self.host}' = '{self.password}'"
+            if self.password is None:
+                logger.info("No password change detected. Skipping this step)")
             else:
-                sql = f"SET PASSWORD FOR '{self.user}'@'{self.host}' = PASSWORD('{self.password}')"
+                if self.password[0] == '*' and len(self.password) == 41:
+                    sql = f"SET PASSWORD FOR '{self.user}'@'{self.host}' = '{self.password}'"
+                else:
+                    sql = f"SET PASSWORD FOR '{self.user}'@'{self.host}' = PASSWORD('{self.password}')"
             logger.debug(f"SQL is: {sql}")
             response["rows"].append(self.database.execute(sql))
             db_user = self.database.get_user_by_name_host(user=self.user, host = self.host)
