@@ -318,7 +318,7 @@ class User:
                     if self_grant['object'] == loaded_grant['object']:
                         if len(self_grant["privs"]) < len(loaded_grant["privs"]):
                             revoked_list = set(loaded_grant["privs"].lower().split(",")).difference_update(set(self_grant["privs"].lower().split(",")))
-                            if not revoked is None:
+                            if not revoked_list is None:
                                 revoked = ",".join(list(revoked_list))
                                 sql = f"REVOKE {revoked} "
                                 if self_grant["object"] != "":
@@ -326,7 +326,7 @@ class User:
                                 sql += f"FROM {self.user}@'{self.host}'"
                         elif len(self_grant["privs"]) > len(loaded_grant["privs"]):
                             granted_list = set(self_grant["privs"].lower().split(",")).difference_update(set(loaded_grant["privs"].lower().split(",")))
-                            if not granted is None:
+                            if not granted_list is None:
                                 granted = ",".join(list(granted_list))
                                 sql = f"GRANT {granted} "
                                 if self_grant["object"] != "":
