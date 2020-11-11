@@ -177,7 +177,7 @@ class User:
             logger.debug(f"Adding new grant: {added}")
             self.grants.append(added)
 
-    def set_grants(self, sql_list: list):
+    def set_grants(self, sql_list):
         for sql in sql_list:
             self.set_grant(sql)
 
@@ -286,7 +286,7 @@ class User:
                         found = True
                         break
                 if not found:
-                    sql = f"GRANT {local['privs']} ON {local['object']} TO {self.user}@{self.host}"
+                    sql = f"GRANT {local['privs']} ON {local['object']} TO {self.user}@'{self.host}'"
                     self.database.execute(sql)
             # Newly revoked
             for remote in self.grants:
@@ -296,7 +296,7 @@ class User:
                         found = True
                         break
                 if not found:
-                    sql = f"REVOKE {local['privs']} ON {local['object']} TO {self.user}@{self.host}"
+                    sql = f"REVOKE {local['privs']} ON {local['object']} TO {self.user}@'{self.host}'"
                     response["rows"].append(self.database.execute(sql))
             # Objects with changed privileges
             for loaded_grant in db_user.grants:
@@ -321,14 +321,14 @@ class User:
                             sql = f"REVOKE {revoked} "
                             if self_grant["object"] != "":
                                 sql+= f"ON {self_grant['object']} "
-                            sql += f"FROM {self.user}@{self.host}"
+                            sql += f"FROM {self.user}@'{self.host}'"
                         elif len(self_grant["privs"]) > len(loaded_grant["privs"]):
                             granted_list = self_grant["privs"].lower().split(",") - loaded_grant["privs"].lower().split(",")
                             granted = ",".join(granted_list)
                             sql = f"GRANT {granted} "
                             if self_grant["object"] != "":
                                 sql+= f"ON {self_grant['object']} "
-                            sql += f"TO {self.user}@{self.host}"
+                            sql += f"TO {self.user}@'{self.host}'"
                         logger.debug(f"Current SQL: {sql}")
                         if len(sql) > 0:
                             response["rows"].append(self.database.execute(sql))
