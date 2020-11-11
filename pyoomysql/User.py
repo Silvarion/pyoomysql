@@ -253,13 +253,33 @@ class User:
                     if getattr(self, attr) != getattr(db_user, attr):
                         self.change_attr(attribute=attr, new_value=getattr(self, attr))
             # Privileges
+            # Newly granted
+            for local in self.grants:
+                found = False
+                for remote in loaded.grants:
+                    if local['object'] == remote['object']
+                        found = True
+                        break
+                if not found:
+                    sql = f"GRANT {local['privs']} ON {local['object']} TO {self.user}@{self.host}"
+                    self.database.execute(sql)
+            # Newly revoked
+            for remote in self.grants:
+                found = False
+                for local in loaded.grants:
+                    if local['object'] == remote['object']
+                        found = True
+                        break
+                if not found:
+                    sql = f"REVOKE {local['privs']} ON {local['object']} TO {self.user}@{self.host}"
+                    self.database.execute(sql)
+            # Objects with changed privileges
             for loaded_grant in loaded_user.grants:
                 logger.debug(f"Grant type is {type(loaded_grant)}")
                 if type(loaded_grant) is str:
                     logger.debug(f"Transforming GRANT string to dictionary:\n'{loaded_grant}'")
                     loaded_grant = grant_to_dict(loaded_grant)
                     logger.debug(f"{loaded_grant}")
-                # if type(grant) is dict:
                 logger.debug(f"Loaded User: {loaded_user.user} Current grant: {loaded_grant}")
                 for self_grant in self.grants:
                     logger.debug(f"Grant type is {type(self_grant)}")
