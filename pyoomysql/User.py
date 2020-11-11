@@ -168,7 +168,7 @@ class User:
                 if added['privs'].lower() != granted['privs'].lower():
                     new_privs = set(added['privs'].lower().split(","))
                     old_privs = set(granted['privs'].lower().split(","))
-                    privs = new_privs.intersection(old_privs).union(new_privs)
+                    privs = ",".join(new_privs.intersection(old_privs).union(new_privs))
                     self.grants[index]['privs'] = privs
                     logger.debug(f"Updating grant: {added}")
                 found = True
