@@ -175,19 +175,19 @@ class User:
                 sql = f"GRANT {role} TO {self.user}@'{self.host}'"
                 response["rows"].append(self.database.execute(sql))
             # Privileges
-                for self_grant in self.grants:
-                    logger.debug(f"Grant type is {type(self_grant)}")
-                    if type(self_grant) is str:
-                        logger.debug(f"Current User: {self.user} Current grant: {self.grants}")
-                        sql = self_grant
-                    else:
-                        sql = f"GRANT {self_grant['privs']} "
-                        if self_grant["object"] != "":
-                            sql+= f"ON {self_grant['object']} "
-                        sql += f"TO {self.user}@{self.host}"
-                    logger.debug(f"Current SQL: {sql}")
-                    response["rows"].append(self.database.execute(sql))
-           # Flush Privileges
+            for self_grant in self.grants:
+                logger.debug(f"Grant type is {type(self_grant)}")
+                if type(self_grant) is str:
+                    logger.debug(f"Current User: {self.user} Current grant: {self.grants}")
+                    sql = self_grant
+                else:
+                    sql = f"GRANT {self_grant['privs']} "
+                    if self_grant["object"] != "":
+                        sql+= f"ON {self_grant['object']} "
+                    sql += f"TO {self.user}@{self.host}"
+                logger.debug(f"Current SQL: {sql}")
+                response["rows"].append(self.database.execute(sql))
+            # Flush Privileges
             self.database.flush_privileges()
 
     def drop(self):
