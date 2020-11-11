@@ -164,8 +164,8 @@ class User:
         index = 0
         for granted in self.grants:
             found = False
-            if added['object'].lower() == granted['object'].lower():
-                if added['privs'].lower() != granted['privs'].lower():
+            if added['object'].lower().replace("`","") == granted['object'].lower():
+                if added['privs'].lower().replace("`","") != granted['privs'].lower():
                     new_privs = set(added['privs'].lower().split(","))
                     old_privs = set(granted['privs'].lower().split(","))
                     privs = new_privs.intersection(old_privs).union(new_privs)
