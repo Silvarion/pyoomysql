@@ -209,7 +209,7 @@ class User:
                     sql = f"GRANT {self_grant['privs']} "
                     if self_grant["object"] != "":
                         sql+= f"ON {self_grant['object']} "
-                    sql += f"TO {self.user}@{self.host}"
+                    sql += f"TO {self.user}@'{self.host}'"
                 logger.debug(f"Current SQL: {sql}")
                 response["rows"].append(self.database.execute(sql))
             # Flush Privileges
