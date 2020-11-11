@@ -125,6 +125,7 @@ class User:
         return json.dumps({
             "user": self.user,
             "host": self.host,
+            "exists": self.exists,
             "roles": self.roles,
             "grants": self.grants
         },indent=2)
