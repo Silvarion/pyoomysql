@@ -141,6 +141,23 @@ class User:
         for attr in self.get_attributes():
             self.__setattr__(attr, loaded.__getattribute__(attr))
 
+    # Grants management
+    def get_grants(self):
+        result = self.database.execute(f"SHOW GRANTS FOR '{self.user}'@'{self.host}'")
+        if len(result["rows"]) > 0:
+            for row in result["rows"]:
+                grant = row[f"Grants for {self.user}@{self.host}"]
+                privs = grant[(grant.find("GRANT")+5):grant.find("ON")].strip()
+                obj = grant[(grant.find("ON")+2):grant.find("TO")].strip()
+                grant = {
+                    "privs": privs,
+                    "object": obj
+                }
+                self.grants.append(grant)
+                # self.grants.append(grant)
+        else:
+            logger.warning("No grants found!")
+
     def set_grant(self, sql):
         added = grant_to_dict(sql)
         index = 0
@@ -161,22 +178,6 @@ class User:
     def set_grants(self, sql_list: list):
         for sql in sql_list:
             self.set_grant(sql)
-
-    def get_grants(self):
-        result = self.database.execute(f"SHOW GRANTS FOR '{self.user}'@'{self.host}'")
-        if len(result["rows"]) > 0:
-            for row in result["rows"]:
-                grant = row[f"Grants for {self.user}@{self.host}"]
-                privs = grant[(grant.find("GRANT")+5):grant.find("ON")].strip()
-                obj = grant[(grant.find("ON")+2):grant.find("TO")].strip()
-                grant = {
-                    "privs": privs,
-                    "object": obj
-                }
-                self.grants.append(grant)
-                # self.grants.append(grant)
-        else:
-            logger.warning("No grants found!")
 
     def create(self):
         response = {
