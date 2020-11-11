@@ -47,7 +47,7 @@ def grant_to_dict(grant: str):
     privs = grant[(grant.find("grant")+5):grant.find("on")].strip()
     obj = grant[(grant.find("on")+2):grant.find("to")].strip()
     grant = {
-        "privs": privs,
+        "privs": privs.lower(),
         "object": obj
     }
     return grant

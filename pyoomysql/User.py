@@ -173,47 +173,39 @@ class User:
                 sql = f"GRANT {role} TO {self.user}@'{self.host}'"
                 response["rows"].append(self.database.execute(sql))
             # Privileges
-            loaded_user = User(user=self.user, host=self.host, database=self.database)
-            for loaded_grant in loaded_user.grants:
-                logger.debug(f"Grant type is {type(loaded_grant)}")
-                if type(loaded_grant) is str:
-                    logger.debug(f"Transforming GRANT string to dictionary:\n'{loaded_grant}'")
-                    loaded_grant = grant_to_dict(loaded_grant)
-                    logger.debug(f"{loaded_grant}")
-                # if type(grant) is dict:
-                logger.debug(f"Loaded User: {loaded_user.user} Current grant: {loaded_grant}")
+            # loaded_user = User(user=self.user, host=self.host, database=self.database)
+            # for loaded_grant in loaded_user.grants:
+            #     logger.debug(f"Grant type is {type(loaded_grant)}")
+            #     if type(loaded_grant) is str:
+            #         logger.debug(f"Transforming GRANT string to dictionary:\n'{loaded_grant}'")
+            #         loaded_grant = grant_to_dict(loaded_grant)
+            #         logger.debug(f"{loaded_grant}")
+            #     # if type(grant) is dict:
+            #     logger.debug(f"Loaded User: {loaded_user.user} Current grant: {loaded_grant}")
                 for self_grant in self.grants:
                     logger.debug(f"Grant type is {type(self_grant)}")
                     if type(self_grant) is str:
-                        logger.debug(f"Transforming GRANT string to dictionary:\n'{self_grant}'")
-                        self_grant = grant_to_dict(self_grant)
-                        logger.debug(f"{self_grant}")
-                    logger.debug(f"Current User: {self.user} Current grant: {self.grants}")
-                    if self_grant['object'] == loaded_grant['object']:
-                        object_found = True
-                        if len(self_grant["privs"]) < len(loaded_grant["privs"]):
-                            revoked_list = loaded_grant["privs"].split(",") - self_grant["privs"].split(",")
-                            revoked = ",".join(revoked_list)
-                            sql = f"REVOKE {revoked} "
-                            if self_grant["object"] != "":
-                                sql+= f"ON {self_grant['object']} "
-                            sql += f"FROM {self.user}@{self.host}"
-                        elif len(self_grant["privs"]) > len(loaded_grant["privs"]):
-                            granted_list = self_grant["privs"].split(",") - loaded_grant["privs"].split(",")
-                            granted = ",".join(granted_list)
-                            sql = f"GRANT {granted} "
-                            if self_grant["object"] != "":
-                                sql+= f"ON {self_grant['object']} "
-                            sql += f"TO {self.user}@{self.host}"
+                        # logger.debug(f"Transforming GRANT string to dictionary:\n'{self_grant}'")
+                        # self_grant = grant_to_dict(self_grant)
+                        # logger.debug(f"{self_grant}")
+                        logger.debug(f"Current User: {self.user} Current grant: {self.grants}")
+                        sql = self_grant
+                    # if self_grant['object'] == loaded_grant['object']:
+                    #     object_found = True
+                    #     if len(self_grant["privs"]) < len(loaded_grant["privs"]):
+                    #         revoked_list = loaded_grant["privs"].split(",") - self_grant["privs"].split(",")
+                    #         revoked = ",".join(revoked_list)
+                    #         sql = f"REVOKE {revoked} "
+                    #         if self_grant["object"] != "":
+                    #             sql+= f"ON {self_grant['object']} "
+                    #         sql += f"FROM {self.user}@{self.host}"
+                    #     elif len(self_grant["privs"]) > len(loaded_grant["privs"]):
+                    #         granted_list = self_grant["privs"].split(",") - loaded_grant["privs"].split(",")
                     else:
-                        object_found = False
-                if not object_found:
-                    granted_list = self_grant["privs"].split(",") - loaded_grant["privs"].split(",")
-                    granted = ",".join(granted_list)
-                    sql = f"GRANT {granted} "
-                    if self_grant["object"] != "":
-                        sql+= f"ON {self_grant['object']} "
-                    sql += f"TO {self.user}@{self.host}"                    
+                        sql = f"GRANT {self_grant['privs']} "
+                        if self_grant["object"] != "":
+                            sql+= f"ON {self_grant['object']} "
+                        sql += f"TO {self.user}@{self.host}"
                     logger.debug(f"Current SQL: {sql}")
                     response["rows"].append(self.database.execute(sql))
            # Flush Privileges
@@ -296,14 +288,14 @@ class User:
                     logger.debug(f"Current User: {self.user} Current grant: {self.grants}")
                     if self_grant['object'] == loaded_grant['object']:
                         if len(self_grant["privs"]) < len(loaded_grant["privs"]):
-                            revoked_list = loaded_grant["privs"].split(",") - self_grant["privs"].split(",")
+                            revoked_list = loaded_grant["privs"].lower().split(",") - self_grant["privs"].lower().split(",")
                             revoked = ",".join(revoked_list)
                             sql = f"REVOKE {revoked} "
                             if self_grant["object"] != "":
                                 sql+= f"ON {self_grant['object']} "
                             sql += f"FROM {self.user}@{self.host}"
                         elif len(self_grant["privs"]) > len(loaded_grant["privs"]):
-                            granted_list = self_grant["privs"].split(",") - loaded_grant["privs"].split(",")
+                            granted_list = self_grant["privs"].lower().split(",") - loaded_grant["privs"].lower().split(",")
                             granted = ",".join(granted_list)
                             sql = f"GRANT {granted} "
                             if self_grant["object"] != "":
