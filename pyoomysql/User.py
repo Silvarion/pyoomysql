@@ -316,18 +316,25 @@ class User:
                         logger.debug(f"{self_grant}")
                     logger.debug(f"Current User: {self.user} Current grant: {self.grants}")
                     if self_grant['object'] == loaded_grant['object']:
-                        revoked_list = set(loaded_grant["privs"].lower().split(",")).difference_update(set(self_grant["privs"].lower().split(",")))
+                        # Revokes
+                        logger.warning(f"Privileges changed for user {self.user}@'{self.host}' on object {self_grant['object']}")
+                        new_privs = set(self_grant["privs"].lower().split(","))
+                        old_privs = set(loaded_grant["privs"].lower().split(","))
+                        revoked_list = list(old_privs.difference_update(new_privs))
                         if not revoked_list is None:
-                            revoked = ",".join(list(revoked_list))
+                            revoked = ",".join(revoked_list)
                             sql = f"REVOKE {revoked} "
                             if self_grant["object"] != "":
                                 sql+= f"ON {self_grant['object']} "
                             sql += f"FROM {self.user}@'{self.host}'"
                             logger.debug(f"Current SQL: {sql}")
                             response["rows"].append(self.database.execute(sql))
-                        granted_list = set(self_grant["privs"].lower().split(",")).difference_update(set(loaded_grant["privs"].lower().split(",")))
+                        # Grants
+                        new_privs = set(self_grant["privs"].lower().split(","))
+                        old_privs = set(loaded_grant["privs"].lower().split(","))
+                        granted_list = list(new_privs.difference_update(old_privs))
                         if not granted_list is None:
-                            granted = ",".join(list(granted_list))
+                            granted = ",".join(granted_list)
                             sql = f"GRANT {granted} "
                             if self_grant["object"] != "":
                                 sql+= f"ON {self_grant['object']} "
