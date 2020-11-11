@@ -163,8 +163,8 @@ class User:
     def set_grant(self, sql):
         added = grant_to_dict(sql.replace("`",""))
         index = 0
+        found = False
         for granted in self.grants:
-            found = False
             if added['object'].lower() == granted['object'].lower():
                 if added['privs'].lower() != granted['privs'].lower():
                     new_privs = set(added['privs'].lower().split(","))
