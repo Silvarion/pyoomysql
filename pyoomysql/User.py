@@ -316,24 +316,23 @@ class User:
                         logger.debug(f"{self_grant}")
                     logger.debug(f"Current User: {self.user} Current grant: {self.grants}")
                     if self_grant['object'] == loaded_grant['object']:
-                        if len(self_grant["privs"]) < len(loaded_grant["privs"]):
-                            revoked_list = set(loaded_grant["privs"].lower().split(",")).difference_update(set(self_grant["privs"].lower().split(",")))
-                            if not revoked_list is None:
-                                revoked = ",".join(list(revoked_list))
-                                sql = f"REVOKE {revoked} "
-                                if self_grant["object"] != "":
-                                    sql+= f"ON {self_grant['object']} "
-                                sql += f"FROM {self.user}@'{self.host}'"
-                        elif len(self_grant["privs"]) > len(loaded_grant["privs"]):
-                            granted_list = set(self_grant["privs"].lower().split(",")).difference_update(set(loaded_grant["privs"].lower().split(",")))
-                            if not granted_list is None:
-                                granted = ",".join(list(granted_list))
-                                sql = f"GRANT {granted} "
-                                if self_grant["object"] != "":
-                                    sql+= f"ON {self_grant['object']} "
-                                sql += f"TO {self.user}@'{self.host}'"
-                        logger.debug(f"Current SQL: {sql}")
-                        if len(sql) > 0:
+                        revoked_list = set(loaded_grant["privs"].lower().split(",")).difference_update(set(self_grant["privs"].lower().split(",")))
+                        if not revoked_list is None:
+                            revoked = ",".join(list(revoked_list))
+                            sql = f"REVOKE {revoked} "
+                            if self_grant["object"] != "":
+                                sql+= f"ON {self_grant['object']} "
+                            sql += f"FROM {self.user}@'{self.host}'"
+                            logger.debug(f"Current SQL: {sql}")
+                            response["rows"].append(self.database.execute(sql))
+                        granted_list = set(self_grant["privs"].lower().split(",")).difference_update(set(loaded_grant["privs"].lower().split(",")))
+                        if not granted_list is None:
+                            granted = ",".join(list(granted_list))
+                            sql = f"GRANT {granted} "
+                            if self_grant["object"] != "":
+                                sql+= f"ON {self_grant['object']} "
+                            sql += f"TO {self.user}@'{self.host}'"
+                            logger.debug(f"Current SQL: {sql}")
                             response["rows"].append(self.database.execute(sql))
             self.database.flush_privileges()
             self.reload()
