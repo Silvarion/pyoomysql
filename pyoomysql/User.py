@@ -291,7 +291,7 @@ class User:
                     logger.debug(f"Grant type is {type(self_grant)}")
                     if type(self_grant) is str:
                         logger.debug(f"Transforming GRANT string to dictionary:\n'{self_grant}'")
-                        self_grant = grant_to_dict(loaded_grant)
+                        self_grant = grant_to_dict(self_grant)
                         logger.debug(f"{self_grant}")
                     logger.debug(f"Current User: {self.user} Current grant: {self.grants}")
                     if self_grant['object'] == loaded_grant['object']:
