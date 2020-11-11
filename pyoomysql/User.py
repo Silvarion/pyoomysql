@@ -169,10 +169,12 @@ class User:
                     old_privs = set(granted['privs'].lower().split(","))
                     privs = new_privs.intersection(old_privs).union(new_privs)
                     self.grants[index]['privs'] = privs
+                    logger.debug(f"Updating grant: {added}")
                 found = True
                 break
             index += 1
         if not found:
+            logger.debug(f"Adding new grant: {added}")
             self.grants.append(added)
 
     def set_grants(self, sql_list: list):
