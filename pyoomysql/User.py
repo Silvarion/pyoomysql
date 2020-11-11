@@ -202,6 +202,7 @@ class User:
                 sql = f"GRANT {role} TO {self.user}@'{self.host}'"
                 response["rows"].append(self.database.execute(sql))
             # Privileges
+            logger.info(f"Found {len(self.grants)} privileges to apply")
             for self_grant in self.grants:
                 logger.debug(f"Grant type is {type(self_grant)}")
                 if type(self_grant) is str:
