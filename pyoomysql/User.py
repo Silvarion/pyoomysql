@@ -256,8 +256,8 @@ class User:
             # Newly granted
             for local in self.grants:
                 found = False
-                for remote in loaded.grants:
-                    if local['object'] == remote['object']
+                for remote in db_user.grants:
+                    if local['object'] == remote['object']:
                         found = True
                         break
                 if not found:
@@ -266,21 +266,21 @@ class User:
             # Newly revoked
             for remote in self.grants:
                 found = False
-                for local in loaded.grants:
-                    if local['object'] == remote['object']
+                for local in db_user.grants:
+                    if local['object'] == remote['object']:
                         found = True
                         break
                 if not found:
                     sql = f"REVOKE {local['privs']} ON {local['object']} TO {self.user}@{self.host}"
                     self.database.execute(sql)
             # Objects with changed privileges
-            for loaded_grant in loaded_user.grants:
+            for loaded_grant in db_user.grants:
                 logger.debug(f"Grant type is {type(loaded_grant)}")
                 if type(loaded_grant) is str:
                     logger.debug(f"Transforming GRANT string to dictionary:\n'{loaded_grant}'")
                     loaded_grant = grant_to_dict(loaded_grant)
                     logger.debug(f"{loaded_grant}")
-                logger.debug(f"Loaded User: {loaded_user.user} Current grant: {loaded_grant}")
+                logger.debug(f"Loaded User: {db_user.user} Current grant: {loaded_grant}")
                 for self_grant in self.grants:
                     logger.debug(f"Grant type is {type(self_grant)}")
                     if type(self_grant) is str:
