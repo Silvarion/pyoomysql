@@ -183,7 +183,9 @@ class User:
                 logger.debug(f"Loaded User: {loaded_user.user} Current grant: {loaded_grant}")
                 for self_grant in self.grants:
                     if type(self_grant) is str:
-                        self_grant = grant_to_dict(loaded_grant)
+                        logger.debug(f"Transforming GRANT string to dictionary:\n'{self_grant}'")
+                        self_grant = grant_to_dict(self_grant)
+                        logger.debug(f"{self_grant}")
                     logger.debug(f"Current User: {self.user} Current grant: {self.grants}")
                     if self_grant['object'] == loaded_grant['object']:
                         object_found = True
@@ -284,7 +286,9 @@ class User:
                 logger.debug(f"Loaded User: {loaded_user.user} Current grant: {loaded_grant}")
                 for self_grant in self.grants:
                     if type(self_grant) is str:
+                        logger.debug(f"Transforming GRANT string to dictionary:\n'{self_grant}'")
                         self_grant = grant_to_dict(loaded_grant)
+                        logger.debug(f"{self_grant}")
                     logger.debug(f"Current User: {self.user} Current grant: {self.grants}")
                     if self_grant['object'] == loaded_grant['object']:
                         if len(self_grant["privs"]) < len(loaded_grant["privs"]):
