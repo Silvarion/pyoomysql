@@ -279,6 +279,7 @@ class User:
             for local in self.grants:
                 found = False
                 for remote in db_user.grants:
+                    logger.debug(f"")
                     if local['object'] == remote['object']:
                         found = True
                         break
@@ -297,6 +298,7 @@ class User:
                     response["rows"].append(self.database.execute(sql))
             # Objects with changed privileges
             for loaded_grant in db_user.grants:
+                sql = ""
                 logger.debug(f"Grant type is {type(loaded_grant)}")
                 if type(loaded_grant) is str:
                     logger.debug(f"Transforming GRANT string to dictionary:\n'{loaded_grant}'")
@@ -326,9 +328,9 @@ class User:
                                 sql+= f"ON {self_grant['object']} "
                             sql += f"TO {self.user}@{self.host}"
                         logger.debug(f"Current SQL: {sql}")
-                        response["rows"].append(self.database.execute(sql))
+                        if len(sql) > 0:
+                            response["rows"].append(self.database.execute(sql))
             self.database.flush_privileges()
-
             self.reload()
         else:
             logger.info("User doesn't exists, CREATING instead")
