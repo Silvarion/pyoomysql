@@ -51,9 +51,9 @@ def grant_to_dict(grant: str):
     logger.debug("Entering function")
     grant = grant.lower()
     logger.debug(f"Processing: {grant}")
-    privs = grant[(grant.find("grant ")+5):grant.find(" on ")].strip()
+    privs = grant[(grant.find("grant ")+5):grant.find(" on ")].strip().replace("`","")
     logger.debug(f"Privs: {privs}")
-    obj = grant[(grant.find(" on ")+4):grant.find(" to ")].strip()
+    obj = grant[(grant.find(" on ")+4):grant.find(" to ")].strip().replace("`","")
     logger.debug(f"Object: {obj}")
     grant = {
         "privs": privs.lower(),
