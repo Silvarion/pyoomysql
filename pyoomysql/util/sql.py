@@ -1,3 +1,5 @@
+import logging
+
 # Methods
 def list_to_column_list(columns):
     result = ""
@@ -28,6 +30,8 @@ Condition format:
 }
 """
 def parse_condition(condition: dict):
+    logger = logging.getLogger(name="pyoomysql:util:sql:parse_condition")
+    logger.debug("Entering function")
     result=""
     if "prefix" in condition.keys():
         result = f"{condition['prefix']} "
@@ -43,9 +47,14 @@ def parse_condition(condition: dict):
     return result
 
 def grant_to_dict(grant: str):
+    logger = logging.getLogger(name="pyoomysql:util:sql:grant_to_dict")
+    logger.debug("Entering function")
     grant = grant.lower()
-    privs = grant[(grant.find("GRANT ")+5):grant.find(" ON ")].strip()
-    obj = grant[(grant.find(" ON ")+4):grant.find(" TO ")].strip()
+    logger.debug(f"Processing: {grant}")
+    privs = grant[(grant.find("grant ")+5):grant.find(" on ")].strip()
+    logger.debug(f"Privs: {privs}")
+    obj = grant[(grant.find(" on ")+4):grant.find(" to ")].strip()
+    logger.debug(f"Object: {obj}")
     grant = {
         "privs": privs.lower(),
         "object": obj
