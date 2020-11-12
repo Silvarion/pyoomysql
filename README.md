@@ -7,7 +7,8 @@ This allows to interact ith MySQL/MariaDB databases easily by constructing objec
 
 1. Requirements
 2. Classes / Objects
-3. Samples
+3. Functions
+4. Samples
 
 ## 1. Requirements
 The MySQLLib package is developed fully in Python3 and is not compatible with Python 2.X at all. Please use Python 3.6 or later to ensure the best compatibility.
@@ -194,7 +195,11 @@ The User class represents a User within the database
 
     Updates the user if it exists in the database
 
-## 3. Samples
+## 3. Functions
+
+### Util: SQL
+
+## 4. Samples
 
     # Import the package
     import pyoomysql
@@ -229,3 +234,6 @@ The User class represents a User within the database
         host = "% or host to connect from",
         password = "very_long_and_strong_password"
     )
+
+    # Create the user in the database
+    myuser.create()

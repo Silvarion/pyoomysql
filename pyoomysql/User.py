@@ -283,9 +283,9 @@ class User:
             # Privileges
             # Newly granted
             for local in self.grants:
-                logger.info(f"Looking for remote grants on {local['object']}")
                 if type(local) is str:
                     local = grant_to_dict(local)
+                logger.info(f"Looking for remote grants on {local['object']}")
                 found = False
                 for remote in db_user.grants:
                     if type(remote) is str:
@@ -300,10 +300,10 @@ class User:
                     self.database.execute(sql)
             # Newly revoked
             for remote in db_user.grants:
-                logger.info(f"Looking for local grants on {remote['object']}")
                 if type(remote) is str:
                     remote = grant_to_dict(remote)
                     logger.debug(f"remote grant dictionary {remote}")
+                logger.info(f"Looking for local grants on {remote['object']}")
                 found = False
                 for local in self.grants:
                     if type(local) is str:
