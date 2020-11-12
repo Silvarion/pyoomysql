@@ -148,12 +148,7 @@ class User:
         result = self.database.execute(f"SHOW GRANTS FOR '{self.user}'@'{self.host}'")
         if len(result["rows"]) > 0:
             for row in result["rows"]:
-                grant = {
-                    "privs": privs,
-                    "object": obj
-                }
                 self.grants.append(grant_to_dict(row))
-                # self.grants.append(grant)
         else:
             logger.warning("No grants found!")
 
