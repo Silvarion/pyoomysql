@@ -288,9 +288,12 @@ class User:
             # Privileges
             # Newly granted
             for local in self.grants:
+                if type(local) is str:
+                    local = grant_to_dict(local)
                 found = False
                 for remote in db_user.grants:
-                    logger.debug(f"")
+                    if type(remote) is str:
+                        remote = grant_to_dict(remote)
                     if local['object'] == remote['object']:
                         found = True
                         break
@@ -299,8 +302,12 @@ class User:
                     self.database.execute(sql)
             # Newly revoked
             for remote in self.grants:
+                if type(remote) is str:
+                    remote = grant_to_dict(remote)
                 found = False
                 for local in db_user.grants:
+                    if type(local) is str:
+                        local = grant_to_dict(local)
                     if local['object'] == remote['object']:
                         found = True
                         break
