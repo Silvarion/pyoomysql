@@ -148,7 +148,7 @@ class User:
         result = self.database.execute(f"SHOW GRANTS FOR '{self.user}'@'{self.host}'")
         if len(result["rows"]) > 0:
             for row in result["rows"]:
-                logger.debug(f"Processing row: {row}")
+                logger.debug(f"Processing row: {row} with keys {row.keys()}")
                 sql = row[row.keys()[0]]
                 self.grants.append(grant_to_dict(sql))
         else:
