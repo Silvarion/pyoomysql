@@ -44,8 +44,8 @@ def parse_condition(condition: dict):
 
 def grant_to_dict(grant: str):
     grant = grant.lower()
-    privs = grant[(grant.find("grant")+5):grant.find("on")].strip()
-    obj = grant[(grant.find("on")+2):grant.find("to")].strip()
+    privs = grant[(grant.find("grant")+5):grant.find(" on")].strip()
+    obj = grant[(grant.find(" on ")+3):grant.find(" to ")].strip()
     grant = {
         "privs": privs.lower(),
         "object": obj
