@@ -149,8 +149,8 @@ class User:
         if len(result["rows"]) > 0:
             for row in result["rows"]:
                 grant = row[f"Grants for {self.user}@{self.host}"]
-                privs = grant[(grant.find("GRANT")+5):grant.find("ON ")].strip().lower().replace("`","")
-                obj = grant[(grant.find("ON ")+2):grant.find("TO ")].strip().lower().replace("`","")
+                privs = grant[(grant.find("GRANT ")+5):grant.find("ON ")].strip().lower().replace("`","")
+                obj = grant[(grant.find("ON ")+2):grant.find(" TO ")].strip().lower().replace("`","")
                 grant = {
                     "privs": privs,
                     "object": obj
