@@ -149,7 +149,8 @@ class User:
         if len(result["rows"]) > 0:
             for row in result["rows"]:
                 logger.debug(f"Processing row: {row}")
-                self.grants.append(grant_to_dict(row))
+                sql = row[row.keys()[0]]
+                self.grants.append(grant_to_dict(sql))
         else:
             logger.warning("No grants found!")
 
