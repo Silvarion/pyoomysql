@@ -324,14 +324,14 @@ class User:
             # Objects with changed privileges
             for loaded_grant in db_user.grants:
                 sql = ""
-                logger.debug(f"Grant type is {type(loaded_grant)}")
+                # logger.debug(f"Grant type is {type(loaded_grant)}")
                 if type(loaded_grant) is str:
                     logger.debug(f"Transforming GRANT string to dictionary:\n'{loaded_grant}'")
                     loaded_grant = grant_to_dict(loaded_grant)
                     logger.debug(f"{loaded_grant}")
                 # logger.debug(f"Loaded User: {db_user.user} Current grant: {loaded_grant}")
                 for self_grant in self.grants:
-                    logger.debug(f"Grant type is {type(self_grant)}")
+                    # logger.debug(f"Grant type is {type(self_grant)}")
                     if type(self_grant) is str:
                         logger.debug(f"Transforming GRANT string to dictionary:\n'{self_grant}'")
                         self_grant = grant_to_dict(self_grant)
