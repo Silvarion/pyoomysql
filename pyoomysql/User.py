@@ -160,7 +160,12 @@ class User:
         else:
             logger.warning("No grants found!")
 
-    def set_grant(self, sql):
+    def set_grants(self, sql_list):
+        self.grants = []
+        for sql in sql_list:
+            self.grants.append(grant_to_dict(sql))
+
+    def update_grants(self, sql):
         added = grant_to_dict(sql.replace("`",""))
         index = 0
         found = False
@@ -178,10 +183,6 @@ class User:
         if not found:
             logger.debug(f"Adding new grant: {added}")
             self.grants.append(added)
-
-    def set_grants(self, sql_list):
-        for sql in sql_list:
-            self.set_grant(sql)
 
     def create(self):
         logger = logging.getLogger(name="User.create")
