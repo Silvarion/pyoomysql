@@ -281,23 +281,6 @@ class User:
                     if getattr(self, attr) != getattr(db_user, attr):
                         self.change_attr(attribute=attr, new_value=getattr(self, attr))
             # Privileges
-            # Newly granted
-            for local in self.grants:
-                if type(local) is str:
-                    local = grant_to_dict(local)
-                logger.info(f"Looking for remote grants on {local['object']}")
-                found = False
-                for remote in db_user.grants:
-                    if type(remote) is str:
-                        remote = grant_to_dict(remote)
-                    if local['object'] == remote['object']:
-                        logger.info(f"Found, will take care of it later")
-                        found = True
-                        break
-                if not found:
-                    logger.info(f"Not found, adding new privilege")
-                    sql = f"GRANT {local['privs']} ON {local['object']} TO {self.user}@'{self.host}'"
-                    self.database.execute(sql)
             # Newly revoked
             for remote in db_user.grants:
                 if type(remote) is str:
@@ -316,6 +299,25 @@ class User:
                     logger.info(f"Not found, revoking privileges on {remote['object']}")
                     sql = f"REVOKE {remote['privs']} ON {remote['object']} FROM {self.user}@'{self.host}'"
                     response["rows"].append(self.database.execute(sql))
+            db_user.reload() # Reload remote user grants before comparing again
+            # Newly granted
+            for local in self.grants:
+                if type(local) is str:
+                    local = grant_to_dict(local)
+                logger.info(f"Looking for remote grants on {local['object']}")
+                found = False
+                for remote in db_user.grants:
+                    if type(remote) is str:
+                        remote = grant_to_dict(remote)
+                    if local['object'] == remote['object']:
+                        logger.info(f"Found, will take care of it later")
+                        found = True
+                        break
+                if not found:
+                    logger.info(f"Not found, adding new privilege")
+                    sql = f"GRANT {local['privs']} ON {local['object']} TO {self.user}@'{self.host}'"
+                    self.database.execute(sql)
+            db_user.reload() # Reload remote user grants before comparing again
             # Objects with changed privileges
             for loaded_grant in db_user.grants:
                 sql = ""
