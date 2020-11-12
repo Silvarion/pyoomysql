@@ -305,12 +305,12 @@ class User:
                     sql = f"GRANT {local['privs']} ON {local['object']} TO {self.user}@'{self.host}'"
                     self.database.execute(sql)
             # Newly revoked
-            for remote in self.grants:
+            for remote in db_user.grants:
                 logger.debug(f"Looking for local grants on {remote['object']}")
                 if type(remote) is str:
                     remote = grant_to_dict(remote)
                 found = False
-                for local in db_user.grants:
+                for local in self.grants:
                     if type(local) is str:
                         local = grant_to_dict(local)
                     if local['object'] == remote['object']:
