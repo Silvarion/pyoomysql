@@ -176,9 +176,9 @@ class Table:
                     sql+=f"WHERE {condition['column']} {condition['operator']} {list_to_sql(condition['value'][0])} AND {list_to_sql(condition['value'][1])} "
                 else:
                     if condition_count > 1:
-                        sql+=f"WHERE {condition['column']} {condition['operator']} {condition['value']} "
+                        sql+=f"AND {condition['column']} {condition['operator']} {condition['value']} "
                     else:
-                        sql+=f" AND {condition['column']} {condition['operator']} {condition['value']} "
+                        sql+=f" WHERE {condition['column']} {condition['operator']} {condition['value']} "
                 logger.debug(f"Full command: {sql}; COMMIT;")
                 result = self.database.execute(command=f"{sql}; COMMIT;")
                 full_result["rows"].append(result)

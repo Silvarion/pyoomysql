@@ -125,6 +125,7 @@ class User:
         return json.dumps({
             "user": self.user,
             "host": self.host,
+            "exists": self.exists,
             "roles": self.roles,
             "grants": self.grants
         },indent=2)
@@ -138,15 +139,18 @@ class User:
 
     def reload(self):
         loaded = User(database=self.database, user=self.user, host=self.host)
-        self = loaded
+        for attr in self.get_attributes():
+            self.__setattr__(attr, loaded.__getattribute__(attr))
 
+    # Grants management
     def get_grants(self):
+        logger = logging.getLogger(name="User.get_grants")
         result = self.database.execute(f"SHOW GRANTS FOR '{self.user}'@'{self.host}'")
         if len(result["rows"]) > 0:
             for row in result["rows"]:
                 grant = row[f"Grants for {self.user}@{self.host}"]
-                privs = grant[(grant.find("GRANT")+5):grant.find("ON")].strip()
-                obj = grant[(grant.find("ON")+2):grant.find("TO")].strip()
+                privs = grant[(grant.find("GRANT")+5):grant.find("ON")].strip().lower().replace("`","")
+                obj = grant[(grant.find("ON")+2):grant.find("TO")].strip().lower().replace("`","")
                 grant = {
                     "privs": privs,
                     "object": obj
@@ -156,7 +160,31 @@ class User:
         else:
             logger.warning("No grants found!")
 
+    def set_grant(self, sql):
+        added = grant_to_dict(sql.replace("`",""))
+        index = 0
+        found = False
+        for granted in self.grants:
+            if added['object'].lower() == granted['object'].lower():
+                if added['privs'].lower() != granted['privs'].lower():
+                    new_privs = set(added['privs'].lower().split(","))
+                    old_privs = set(granted['privs'].lower().split(","))
+                    privs = ",".join(new_privs.intersection(old_privs).union(new_privs))
+                    self.grants[index]['privs'] = privs
+                    logger.debug(f"Updating grant: {added}")
+                found = True
+                break
+            index += 1
+        if not found:
+            logger.debug(f"Adding new grant: {added}")
+            self.grants.append(added)
+
+    def set_grants(self, sql_list):
+        for sql in sql_list:
+            self.set_grant(sql)
+
     def create(self):
+        logger = logging.getLogger(name="User.create")
         response = {
             "rows": []
         }
@@ -168,35 +196,41 @@ class User:
             sql = f"CREATE USER '{self.user}'@'{self.host}' IDENTIFIED BY '{self.password}'"
             logger.debug(f"SQL is: {sql}")
             response["rows"].append(self.database.execute(sql))
-            self.reload()
+            self.exists = True
             # Roles
             for role in self.roles:
                 sql = f"GRANT {role} TO {self.user}@'{self.host}'"
                 response["rows"].append(self.database.execute(sql))
-            # Grants
-            for grant in self.grants:
-                if type(grant) is str:
-                    grant = grant_to_dict(grant)
-                # if type(grant) is dict:
-                sql = f"GRANT {grant['privs']} "
-                if grant["object"] != "":
-                    sql+= f"ON {grant['object']} "
-                sql += f"TO {self.user}@'{self.host}'"
+            # Privileges
+            logger.info(f"Found {len(self.grants)} privileges to apply")
+            for self_grant in self.grants:
+                logger.debug(f"Grant type is {type(self_grant)}")
+                if type(self_grant) is str:
+                    logger.debug(f"Current User: {self.user} Current grant: {self.grants}")
+                    sql = self_grant
+                else:
+                    sql = f"GRANT {self_grant['privs']} "
+                    if self_grant["object"] != "":
+                        sql+= f"ON {self_grant['object']} "
+                    sql += f"TO {self.user}@'{self.host}'"
                 logger.debug(f"Current SQL: {sql}")
                 response["rows"].append(self.database.execute(sql))
-            self.database.flush_privileges()
             # Flush Privileges
             self.database.flush_privileges()
+            self.reload()
 
     def drop(self):
+        logger = logging.getLogger(name="User.drop")
         if self.exists:
             # Drop user
             sql = f"DROP USER {self.user}@'{self.host}'"
+            logger.debug(f"SQL: {sql}")
             result = self.database.execute(sql)
             self.exists = False
             return result
 
     def change_attr(self, attribute: str, new_value):
+        logger = logging.getLogger(name="User.change_attr")
         try:
             logger.debug("Saving old value.")
             old_value = getattr(self, attribute)
@@ -216,6 +250,7 @@ class User:
             logger.warning(f"Attribute {attribute} not found!")
 
     def update(self):
+        logger = logging.getLogger(name="User.update")
         response = {
             "rows": []
         }
@@ -235,45 +270,85 @@ class User:
             if loaded_user is not None and self.host != loaded_user.host:
                 loaded_user.change_attr("host",self.host)
             # Update password
-            if self.password[0] == '*' and len(self.password) == 41:
-                sql = f"SET PASSWORD FOR '{self.user}'@'{self.host}' = '{self.password}'"
+            if self.password is None:
+                logger.info("No password change detected. Skipping this step)")
             else:
-                sql = f"SET PASSWORD FOR '{self.user}'@'{self.host}' = PASSWORD('{self.password}')"
-            logger.debug(f"SQL is: {sql}")
-            response["rows"].append(self.database.execute(sql))
+                if self.password[0] == '*' and len(self.password) == 41:
+                    sql = f"SET PASSWORD FOR '{self.user}'@'{self.host}' = '{self.password}'"
+                else:
+                    sql = f"SET PASSWORD FOR '{self.user}'@'{self.host}' = PASSWORD('{self.password}')"
+                logger.debug(f"SQL is: {sql}")
+                response["rows"].append(self.database.execute(sql))
             db_user = self.database.get_user_by_name_host(user=self.user, host = self.host)
             # Update attributes
             for attr in self.get_attributes():
                 if attr not in ['password', 'auth_string', 'grants']:
                     if getattr(self, attr) != getattr(db_user, attr):
                         self.change_attr(attribute=attr, new_value=getattr(self, attr))
-            # Grants
-            for grant in self.grants:
-                if type(grant) is str:
-                    grant = grant_to_dict(grant)
-                # if type(grant) is dict:
-                if grant not in loaded_user.grants:
-                    sql = f"GRANT {grant['privs']} "
-                    if grant["object"] != "":
-                        sql+= f"ON {grant['object']} "
-                    sql += f"TO {self.user}@'{self.host}'"
-                    logger.debug(f"Current SQL: {sql}")
+            # Privileges
+            # Newly granted
+            for local in self.grants:
+                found = False
+                for remote in db_user.grants:
+                    logger.debug(f"")
+                    if local['object'] == remote['object']:
+                        found = True
+                        break
+                if not found:
+                    sql = f"GRANT {local['privs']} ON {local['object']} TO {self.user}@'{self.host}'"
+                    self.database.execute(sql)
+            # Newly revoked
+            for remote in self.grants:
+                found = False
+                for local in db_user.grants:
+                    if local['object'] == remote['object']:
+                        found = True
+                        break
+                if not found:
+                    sql = f"REVOKE {local['privs']} ON {local['object']} FROM {self.user}@'{self.host}'"
                     response["rows"].append(self.database.execute(sql))
+            # Objects with changed privileges
+            for loaded_grant in db_user.grants:
+                sql = ""
+                logger.debug(f"Grant type is {type(loaded_grant)}")
+                if type(loaded_grant) is str:
+                    logger.debug(f"Transforming GRANT string to dictionary:\n'{loaded_grant}'")
+                    loaded_grant = grant_to_dict(loaded_grant)
+                    logger.debug(f"{loaded_grant}")
+                logger.debug(f"Loaded User: {db_user.user} Current grant: {loaded_grant}")
+                for self_grant in self.grants:
+                    logger.debug(f"Grant type is {type(self_grant)}")
+                    if type(self_grant) is str:
+                        logger.debug(f"Transforming GRANT string to dictionary:\n'{self_grant}'")
+                        self_grant = grant_to_dict(self_grant)
+                        logger.debug(f"{self_grant}")
+                    logger.debug(f"Current User: {self.user} Current grant: {self.grants}")
+                    if self_grant['object'] == loaded_grant['object']:
+                        # Revokes
+                        new_privs = set(self_grant["privs"].replace(" ","").lower().split(","))
+                        old_privs = set(loaded_grant["privs"].replace(" ","").lower().split(","))
+                        revoked_list = list(old_privs.difference(new_privs))
+                        if len(revoked_list) > 0:
+                            revoked = ",".join(revoked_list)
+                            sql = f"REVOKE {revoked} "
+                            if self_grant["object"] != "":
+                                sql+= f"ON {self_grant['object']} "
+                            sql += f"FROM {self.user}@'{self.host}'"
+                            logger.debug(f"Current SQL: {sql}")
+                            response["rows"].append(self.database.execute(sql))
+                        # Grants
+                        new_privs = set(self_grant["privs"].lower().split(","))
+                        old_privs = set(loaded_grant["privs"].lower().split(","))
+                        granted_list = list(new_privs.difference(old_privs))
+                        if len(granted_list) > 0:
+                            granted = ",".join(granted_list)
+                            sql = f"GRANT {granted} "
+                            if self_grant["object"] != "":
+                                sql+= f"ON {self_grant['object']} "
+                            sql += f"TO {self.user}@'{self.host}'"
+                            logger.debug(f"Current SQL: {sql}")
+                            response["rows"].append(self.database.execute(sql))
             self.database.flush_privileges()
-            # Revokes
-            for grant in loaded_user.grants:
-                if type(grant) is str:
-                    grant = grant_to_dict(grant)
-                # if type(grant) is dict:
-                if grant not in self.grants:
-                    sql = f"REVOKE {grant['privs']} "
-                    if grant["object"] != "":
-                        sql+= f"ON {grant['object']} "
-                    sql += f"FROM {self.user}@'{self.host}'"
-                    logger.debug(f"Current SQL: {sql}")
-                    response["rows"].append(self.database.execute(sql))
-            self.database.flush_privileges()
-
             self.reload()
         else:
             logger.info("User doesn't exists, CREATING instead")
