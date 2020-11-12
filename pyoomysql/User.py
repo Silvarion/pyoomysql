@@ -289,7 +289,7 @@ class User:
             # Privileges
             # Newly granted
             for local in self.grants:
-                logger.debug(f"Looking for remote grants on {local['object']}")
+                logger.info(f"Looking for remote grants on {local['object']}")
                 if type(local) is str:
                     local = grant_to_dict(local)
                 found = False
@@ -297,16 +297,16 @@ class User:
                     if type(remote) is str:
                         remote = grant_to_dict(remote)
                     if local['object'] == remote['object']:
-                        logger.debug(f"Found, will take care of it later")
+                        logger.info(f"Found, will take care of it later")
                         found = True
                         break
                 if not found:
-                    logger.debug(f"Not found, adding new privilege")
+                    logger.info(f"Not found, adding new privilege")
                     sql = f"GRANT {local['privs']} ON {local['object']} TO {self.user}@'{self.host}'"
                     self.database.execute(sql)
             # Newly revoked
             for remote in db_user.grants:
-                logger.debug(f"Looking for local grants on {remote['object']}")
+                logger.info(f"Looking for local grants on {remote['object']}")
                 if type(remote) is str:
                     remote = grant_to_dict(remote)
                 found = False
@@ -314,11 +314,11 @@ class User:
                     if type(local) is str:
                         local = grant_to_dict(local)
                     if local['object'] == remote['object']:
-                        logger.debug(f"Found, will take care of it later")
+                        logger.info(f"Found, will take care of it later")
                         found = True
                         break
                 if not found:
-                    logger.debug(f"Not found, revoking privileges on {remote['object']}")
+                    logger.info(f"Not found, revoking privileges on {remote['object']}")
                     sql = f"REVOKE {remote['privs']} ON {remote['object']} FROM {self.user}@'{self.host}'"
                     response["rows"].append(self.database.execute(sql))
             # Objects with changed privileges
