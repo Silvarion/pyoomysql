@@ -309,6 +309,7 @@ class User:
                 logger.info(f"Looking for local grants on {remote['object']}")
                 if type(remote) is str:
                     remote = grant_to_dict(remote)
+                    logger.debug(f"remote grant dictionary {remote}")
                 found = False
                 for local in self.grants:
                     if type(local) is str:
