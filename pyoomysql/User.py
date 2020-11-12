@@ -332,8 +332,8 @@ class User:
                     logger.debug(f"Current User: {self.user} Current grant: {self.grants}")
                     if self_grant['object'] == loaded_grant['object']:
                         # Revokes
-                        new_privs = set(self_grant["privs"].replace(" ","").lower().split(","))
-                        old_privs = set(loaded_grant["privs"].replace(" ","").lower().split(","))
+                        new_privs = set(self_grant["privs"].strip().lower().split(","))
+                        old_privs = set(loaded_grant["privs"].strip().lower().split(","))
                         revoked_list = list(old_privs.difference(new_privs))
                         if len(revoked_list) > 0:
                             revoked = ",".join(revoked_list)
