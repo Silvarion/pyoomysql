@@ -238,3 +238,10 @@ class Schema:
                     return diff_dict
             # TO-DO: Get functions definitions and compare
             return None
+
+    # JSON Methods
+    def json_load(self, json_data: str):
+        pass
+
+    def json_dump(self):
+        pass

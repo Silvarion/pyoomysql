@@ -278,3 +278,10 @@ class User:
         else:
             logger.info("User doesn't exists, CREATING instead")
             self.create()
+
+    # JSON Methods
+    def json_load(self, json_data: str):
+        pass
+
+    def json_dump(self):
+        pass

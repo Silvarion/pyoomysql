@@ -1,5 +1,5 @@
 # Intra-package dependencies
-from .User import User
+import pyoomysql.User
 # General Imports
 import mysql.connector
 from mysql.connector import errorcode
@@ -316,3 +316,10 @@ class Database:
 
     def set_global_variable_from_dict(self, variable_dict: dict):
         return self.execute(command=f"SET GLOBAL {variable_dict['variable_name']} = {variable_dict['variable_value']}")
+
+    # JSON Methods
+    def json_load(self, json_data: str):
+        pass
+
+    def json_dump(self):
+        pass

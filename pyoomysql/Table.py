@@ -297,3 +297,19 @@ class Table:
                 if remote_script:
                     print(f'Run on {table.database.hostname}:{remote_script}')
         return None
+
+    # JSON Methods
+    def json_load(self, json_data: str):
+        for key in json_data:
+            if key == "schema":
+                self.schema = Schema(database=self.database)
+
+    def json_dump(self):
+        column_list = []
+        for column in self.columns:
+            column_list.append(column.json_dump())
+        return {
+            "schema": self.schema.name,
+            "name": self.name,
+            "columns": column_list
+        }

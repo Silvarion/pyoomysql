@@ -1,1 +1,1 @@
-from . import sql
+import pyoomysql.Database as Database
