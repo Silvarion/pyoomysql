@@ -1,3 +1,4 @@
+import json
 from .Table import Table
 
 class Column:
