@@ -104,15 +104,19 @@ class Database:
             self.connection = None
 
     def reconnect(self):
-        if "user" in dir(self) and "password" in dir(self):
-            if self.auth_plugin:
-                self.connect(user=self.user, password=self.password, auth_plugin=self.auth_plugin, nolog=True, log_level = self.log_level)
-            else:
-                self.connect(user=self.user, password=self.password, nolog=True, log_level = self.log_level)
+        try:
+            self.connection.ping(reconnect=True, attempts=3, delay=5)
+        except:
+            if "user" in dir(self) and "password" in dir(self):
+                if self.auth_plugin:
+                    self.connect(user=self.user, password=self.password, auth_plugin=self.auth_plugin, nolog=True, log_level = self.log_level)
+                else:
+                    self.connect(user=self.user, password=self.password, nolog=True, log_level = self.log_level)
 
     # Execute single command
     def execute(self,command):
-        self.reconnect()
+        if not self.is_connected():
+            self.connection.ping(reconnect=True, attempts=3, delay=5)
         resultset = {
             'rows': []
         }
@@ -301,7 +305,7 @@ class Database:
 
     # Check if there's an active connection to the database
     def is_connected(self):
-        if self.connection:
+        if self.connection.is_connected():
             return True
         else:
             return False
