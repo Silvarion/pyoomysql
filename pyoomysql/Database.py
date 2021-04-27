@@ -115,7 +115,8 @@ class Database:
 
     # Execute single command
     def execute(self,command):
-        self.connection.ping(reconnect=True, attempts=3, delay=5)
+        if not self.is_connected():
+            self.connection.ping(reconnect=True, attempts=3, delay=5)
         resultset = {
             'rows': []
         }
