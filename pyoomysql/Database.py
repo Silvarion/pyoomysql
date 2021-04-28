@@ -167,12 +167,12 @@ class Database:
                     resultset["exec_time"] = f"{timer_elapsed.total_seconds()}"
                 logger.debug(f"Command executed successfully in {resultset['exec_time']} s")
             except mysql.connector.Error as err:
-                logger.log(WARNING, 'Catched exception while executing')
+                logger.log(WARNING, f'Catched mysql.connector.Error while executing {command}')
                 logger.log(CRITICAL, err.errno)
                 logger.log(CRITICAL, err.sqlstate)
                 logger.log(CRITICAL, err.msg)
             except Exception as e:
-                logger.log(WARNING, 'Catched exception while executing')
+                logger.log(WARNING, f'Catched exception while executing: {command}')
                 logger.log(CRITICAL, e)
             finally:
                 return resultset
