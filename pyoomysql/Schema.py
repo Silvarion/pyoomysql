@@ -2,7 +2,6 @@
 from . import Table
 
 # General Imports
-import mysql.connector
 from mysql.connector import errorcode
 from mysql.connector import FieldType
 from argparse import ArgumentParser

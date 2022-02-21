@@ -1,7 +1,6 @@
 # Intra-package dependencies
 from .User import User
 # General Imports
-import mysql.connector
 from mysql.connector import errorcode
 from mysql.connector import FieldType
 from argparse import ArgumentParser
@@ -226,6 +225,8 @@ class Database:
 
     ## User Methods
     def get_users(self):
+        from pyoomysql.User import User
+
         response = []
         result = self.execute(f"SELECT user, host FROM mysql.user")
         if len(result["rows"]) > 0:
@@ -237,6 +238,7 @@ class Database:
         return response
 
     def get_user_by_name(self, user):
+        from pyoomysql.User import User
         response = []
         result = self.execute(f"SELECT user, host FROM mysql.user WHERE user = '{user}'")
         if len(result["rows"]) > 0:
@@ -248,6 +250,7 @@ class Database:
         return response
 
     def get_user_by_name_host(self, user, host):
+        from pyoomysql.User import User
         result = self.execute(f"SELECT user, host FROM mysql.user WHERE user = '{user}' AND host = '{host}'")
         if result["rowcount"] == 1:
             if type(result["rows"][0]["user"]) is bytearray:

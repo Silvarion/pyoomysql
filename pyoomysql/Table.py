@@ -1,7 +1,6 @@
 # Intra-package dependencies
 from .util.sql import list_to_column_list,list_to_sql,parse_condition
 # General Imports
-import mysql.connector
 from mysql.connector import errorcode
 from mysql.connector import FieldType
 from argparse import ArgumentParser
