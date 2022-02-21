@@ -1,5 +1,3 @@
-# Intra-package dependencies
-from .User import User
 # General Imports
 from mysql.connector import errorcode
 from mysql.connector import FieldType
@@ -105,15 +103,19 @@ class Database:
             self.connection = None
 
     def reconnect(self):
-        if "user" in dir(self) and "password" in dir(self):
-            if self.auth_plugin:
-                self.connect(user=self.user, password=self.password, auth_plugin=self.auth_plugin, nolog=True, log_level = self.log_level)
-            else:
-                self.connect(user=self.user, password=self.password, nolog=True, log_level = self.log_level)
+        try:
+            self.connection.ping(reconnect=True, attempts=3, delay=5)
+        except:
+            if "user" in dir(self) and "password" in dir(self):
+                if self.auth_plugin:
+                    self.connect(user=self.user, password=self.password, auth_plugin=self.auth_plugin, nolog=True, log_level = self.log_level)
+                else:
+                    self.connect(user=self.user, password=self.password, nolog=True, log_level = self.log_level)
 
     # Execute single command
     def execute(self,command):
-        self.reconnect()
+        if not self.is_connected():
+            self.connection.ping(reconnect=True, attempts=3, delay=5)
         resultset = {
             'rows': []
         }
@@ -164,12 +166,12 @@ class Database:
                     resultset["exec_time"] = f"{timer_elapsed.total_seconds()}"
                 logger.debug(f"Command executed successfully in {resultset['exec_time']} s")
             except mysql.connector.Error as err:
-                logger.log(WARNING, 'Catched exception while executing')
+                logger.log(WARNING, f'Catched mysql.connector.Error while executing {command}')
                 logger.log(CRITICAL, err.errno)
                 logger.log(CRITICAL, err.sqlstate)
                 logger.log(CRITICAL, err.msg)
             except Exception as e:
-                logger.log(WARNING, 'Catched exception while executing')
+                logger.log(WARNING, f'Catched exception while executing: {command}')
                 logger.log(CRITICAL, e)
             finally:
                 return resultset
@@ -302,7 +304,7 @@ class Database:
 
     # Check if there's an active connection to the database
     def is_connected(self):
-        if self.connection:
+        if self.connection.is_connected():
             return True
         else:
             return False
