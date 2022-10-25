@@ -34,7 +34,7 @@ class Table:
         self.schema = schema
         self.database = schema.database
         self.fqn = f"{self.schema.name}.{self.name}"
-        result = self.database.execute(command = f"SELECT table_schema, table_name, table_type FROM information_schema.TABLES WHERE table_schema = '{self.schema.name}' AND table_name = '{self.name}'")
+        result = self.database.execute(command = f"SELECT table_schema, table_name, table_type, table_collation FROM information_schema.TABLES WHERE table_schema = '{self.schema.name}' AND table_name = '{self.name}'")
         self.ddl = ""
         self.columns = []
         self.keys = {}
@@ -42,8 +42,8 @@ class Table:
             self.exists = False
         else:
             self.exists = True
+            self.collation = result["rows"][0]["table_collation"]
             self.load_table()
-            # self.columns = self.get_columns()
 
     def __str__(self):
         column_list = []
@@ -54,6 +54,7 @@ class Table:
             "schema": f"{self.schema.name}",
             "name": self.name,
             "fqn": self.fqn,
+            "collation": self.collation,
             "columns": column_list,
             "keys": self.keys,
             "ddl": self.ddl
