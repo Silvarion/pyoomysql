@@ -1,6 +1,6 @@
-# Intra-package dependencies
-from .util.sql import list_to_column_list,list_to_sql,parse_condition
 # General Imports
+from posixpath import split
+import string
 from mysql.connector import errorcode
 from mysql.connector import FieldType
 from argparse import ArgumentParser
@@ -8,7 +8,6 @@ from datetime import datetime
 from datetime import timedelta
 from time import sleep
 import json
-import getpass
 import logging
 from logging import DEBUG
 from logging import CRITICAL
@@ -16,6 +15,8 @@ from logging import ERROR
 from logging import FATAL
 from logging import INFO
 from logging import WARNING
+
+from .util.sql import *
 
 # Format and Get root logger
 logging.basicConfig(
@@ -33,20 +34,29 @@ class Table:
         self.schema = schema
         self.database = schema.database
         self.fqn = f"{self.schema.name}.{self.name}"
-        result = self.database.execute(command = f"SELECT table_schema, table_name FROM information_schema.TABLES WHERE table_schema = '{self.schema.name}' AND table_name = '{self.name}'")
+        result = self.database.execute(command = f"SELECT table_schema, table_name, table_type FROM information_schema.TABLES WHERE table_schema = '{self.schema.name}' AND table_name = '{self.name}'")
+        self.ddl = ""
+        self.columns = []
+        self.keys = {}
         if result["rowcount"] == 0:
             self.exists = False
-            self.columns = {}
         else:
             self.exists = True
-            self.columns = self.get_columns()
+            self.load_table()
+            # self.columns = self.get_columns()
 
     def __str__(self):
+        column_list = []
+        for column in self.columns:
+            column_list.append(f"{column.name} {column.type}({column.length})")
         return json.dumps({
             "database": f"{self.database.hostname}:{self.database.port}",
             "schema": f"{self.schema.name}",
             "name": self.name,
-            "fqn": self.fqn
+            "fqn": self.fqn,
+            "columns": column_list,
+            "keys": self.keys,
+            "ddl": self.ddl
         },indent=2)
 
     # Attributes and methods getters
@@ -59,20 +69,23 @@ class Table:
     # Methods
     def get_columns(self):
         # logger.log(DEBUG, f"Table is: {table_name}")
-        result = self.database.execute(f"SELECT column_name, ordinal_position, column_default, is_nullable, data_type, column_type, character_set_name, collation_name FROM information_schema.columns WHERE table_schema = '{self.schema.name}' AND table_name = '{self.name}' ORDER BY ordinal_position")
-        column_dict = {}
+        result = self.database.execute(f"SELECT column_name, ordinal_position, data_type, column_default, is_nullable, column_type, character_set_name, collation_name FROM information_schema.columns WHERE table_schema = '{self.schema.name}' AND table_name = '{self.name}' ORDER BY ordinal_position")
+        column_list = []
         for column in result['rows']:
             # logger.log(DEBUG, column)
-            column_dict[column['column_name']] = {
-                'ordinal_position': column['ordinal_position'],
-                'column_default': column['column_default'],
-                'is_nullable': column['is_nullable'],
-                'data_type': column['data_type'],
-                'column_type': column['column_type'],
-                'charset': column['character_set_name'],
-                'collation': column['collation_name'],
-            }
-        return column_dict
+            column_list.append(
+                Column(
+                    table               = self,
+                    name                = column['column_name'],
+                    ordinal_position    = column['ordinal_position'],
+                    type                = column['data_type'], 
+                    default             = column['column_default'],
+                    nullable            = column['is_nullable'], 
+                    charset             = column['character_set_name'],
+                    length              = 0
+                )
+            )
+        return column_list
 
     def get_rowcount(self):
         logger.log(DEBUG,'Getting ROWCOUNT')
@@ -93,7 +106,150 @@ class Table:
         sql += ")"
         return sql
 
-    # More DML
+    def load_table(self):
+        result = self.database.execute(f"SHOW CREATE TABLE {self.fqn}")
+        if len(result["rows"]) > 0:
+            if "Create Table" in result["rows"][0].keys():
+                original_ddl = result["rows"][0]["Create Table"]
+            else:
+                logger.error(f"Something went wrong with this resultset {result}")
+        if original_ddl.find("USING") != -1:
+            logger.debug("Original_ddl: {original_ddl}")
+        self.ddl = f"CREATE TABLE {self.fqn} ("
+        for line in original_ddl.replace("`","").split("\n"):
+            column_pos = 0
+            for item in line.strip(" ").split(","):
+                if item.find("CREATE") == -1:
+                    item_array = item.split(" ")
+                    if item_array[0] not in ["PRIMARY","UNIQUE","KEY","ENGINE","AUTO_INCREMENT","DEFAULT","CHARSET",")"] and len(item_array) > 1:
+                        column_pos+=1
+                        index = 0
+                        column_nullable = True
+                        previous_word = ""
+                        column_unsigned = False
+                        column_autoincrement = False
+                        column_default = None
+                        column_length = 0
+                        next_default = False
+                        index = 0
+                        for word in item_array:
+                            if index == 0:
+                                column_name=word
+                                index+=1
+                            elif index == 1:
+                                if word.find("(") != -1:
+                                    column_type=word.split("(")[0]
+                                    column_length=word.split("(")[1].split(")")[0]
+                                    index+=1
+                                else:
+                                    column_type = word
+                            elif index > 1:
+                                if word == "unsigned":
+                                    column_unsigned: True
+                                elif word == "NOT":
+                                    previous_word = word
+                                elif word == "NULL" and previous_word == "NOT":
+                                    column_nullable = False
+                                elif word == "DEFAULT":
+                                    column_default = "next"
+                                elif word == "AUTO_INCREMENT":
+                                    column_autoincrement = True
+                                else:
+                                    if column_default == "next":
+                                        column_default = word
+                        self.columns.append(
+                            Column(
+                                table=self,
+                                name=column_name,
+                                ordinal_position= column_pos,
+                                type=column_type,
+                                length=column_length,
+                                default = column_default,
+                                nullable = column_nullable,
+                                autoincrement = column_autoincrement
+                            )
+                        )
+                        if len(self.columns) > 1:
+                            self.ddl+=", "
+                        self.ddl += f"{column_name} {column_type}({column_length})"
+                        if not column_nullable:
+                            self.ddl+=f" NOT NULL"
+                        if column_default is not None:
+                            self.ddl+=f" DEFAULT {column_default}"
+                        if column_autoincrement:
+                            self.ddl+=" AUTO_INCREMENT"
+                    else:
+                        if item_array[0] == "PRIMARY":
+                            logger.debug("Current DDL: {self.ddl}\nProcessing {item_array}")
+                            self.keys["PRIMARY"] = {}
+                            self.keys["PRIMARY"]["columns"] = []
+                            self.keys["PRIMARY"]["type"] = "primary"
+                            self.ddl+=", PRIMARY KEY ("
+                            for segment in item_array:
+                                if segment[0] == "(":
+                                    for key in segment.split("(")[1].split(")")[0].split(","):
+                                        self.keys["PRIMARY"]["columns"].append(key)
+                                        self.ddl+=f"{key},"
+                                    self.ddl = f"{self.ddl[:-1]})"
+                        elif item_array[0] == "UNIQUE":
+                            logger.debug("Current DDL: {self.ddl}\nProcessing {item_array}")
+                            self.keys[item_array[2]] = {}
+                            self.keys[item_array[2]]["columns"] = []
+                            self.keys[item_array[2]]["type"] = "unique"
+                            self.ddl+=", UNIQUE KEY ("
+                            for segment in item_array:
+                                if segment[0] == "(":
+                                    for key in segment.split("(")[1].split(")")[0].split(","):
+                                        self.keys[item_array[2]]["columns"].append(key)
+                                        self.ddl+=f"{key},"
+                                    self.ddl = f"{self.ddl[:-1]})"
+                        elif item_array[0] == "KEY":
+                            logger.debug("Current DDL: {self.ddl}\nProcessing {item_array}")
+                            self.keys[item_array[2]] = {}
+                            self.keys[item_array[2]]["columns"] = []
+                            if "USING" in item_array:
+                                self.keys[item_array[2]]["type"] = item_array[item_array.index("USING")+1]
+                            else:
+                                self.keys[item_array[2]]["type"] = "non-unique"
+                            self.ddl+=", KEY ("
+                            for segment in item_array:
+                                if segment[0] == "(":
+                                    for key in segment.split("(")[1].split(")")[0].split(","):
+                                        self.keys[item_array[2]]["columns"].append(key)
+                                        self.ddl+=f"{key},"
+                                    if "USING" in item_array:
+                                        self.ddl = f"{self.ddl[:-1]}) USING {item_array[item_array.index('USING')+1]}"
+                                    else:
+                                        self.ddl = f"{self.ddl[:-1]})"
+                        elif item_array[0] == ")" or item_array[0].find("ENGINE") != -1:
+                            logger.debug("Current DDL: {self.ddl}\nProcessing {item_array}")
+                            for segment in item_array:
+                                if segment.find(")") == 0:
+                                    self.ddl+=")"
+                                elif segment.find("ENGINE") != -1:
+                                    self.ddl+=f" {segment},"
+                                elif segment.find("AUTO_INCREMENT") != -1:
+                                    self.ddl+=f" {segment},"
+                                elif segment.find("CHARSET") != -1:
+                                    if segment.split("=")[1] == "utf8":
+                                        def_charset = "utf8mb4"
+                                    else:
+                                        def_charset = segment.split("=")[1]
+                                    self.ddl+=f" DEFAULT CHARSET {def_charset},"
+                            self.ddl = self.ddl[:-1]
+
+    # DDL
+    def create(self):
+        if self.exists:
+            logger.warn(msg=f"The table {self.fqn} already exists.")
+        else:
+            self.database.execute = self.ddl
+
+    def drop(self):
+        self.database.execute(f"DROP TABLE {self.fqn}")
+        self.exists = False
+
+    # DML
     def truncate(self):
         return self.database.execute(f'TRUNCATE TABLE {self.fqn}')
 
@@ -296,3 +452,55 @@ class Table:
                 if remote_script:
                     print(f'Run on {table.database.hostname}:{remote_script}')
         return None
+
+class Column:
+    # Constructor
+    def __init__(self, 
+        table: Table, 
+        name: str, 
+        ordinal_position: int, 
+        type: str, 
+        length: int, 
+        precision: int = 0, 
+        default = None, 
+        nullable: bool = True, 
+        autoincrement: bool = False,
+        unsigned = False,
+        charset: str = 'utf8mb4'
+    ):
+        self.table = table
+        self.name = name
+        self.ordinal_position = ordinal_position
+        self.type = type
+        self.length = length
+        self.precision = precision
+        self.default = default
+        self.nullable = nullable
+        self.autoincrement = autoincrement
+        self.unsigned = unsigned
+        if charset is None:
+            charset = self.table.schema.charset
+        else:
+            self.charset = charset
+
+    # Python Object Overrides
+    def __str__(self):
+        stringed = f"{self.name} {self.type}({self.length}"
+        if self.precision != 0:
+            stringed+=f",{self.precision})"
+        else:
+            stringed+=")"
+        if not self.nullable:
+            stringed+=f" NOT NULL"
+        if self.default is not None:
+            stringed+=f"DEFAULT {self.default}"
+        if self.autoincrement:
+            stringed+=" AUTOINCREMENT"
+        return stringed
+
+    # Attributes and methods getters
+    def get_attributes(self):
+        return ['name', 'length', 'precision', 'nullable', 'autoincrement']
+
+    def get_methods(self):
+        return ['get_attributes', 'get_columns']

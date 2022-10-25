@@ -1,6 +1,3 @@
-# Intra-package dependencies
-from . import Table
-
 # General Imports
 from mysql.connector import errorcode
 from mysql.connector import FieldType
@@ -8,19 +5,13 @@ from argparse import ArgumentParser
 from datetime import datetime
 from datetime import timedelta
 import json
-import getpass
 import logging
-from logging import DEBUG
-from logging import CRITICAL
-from logging import ERROR
-from logging import FATAL
-from logging import INFO
-from logging import WARNING
+from .Table import Table
 
 # Format and Get root logger
 logging.basicConfig(
     format='[%(asctime)s][%(levelname)-8s] %(message)s',
-    level=INFO,
+    level=logging.INFO,
     datefmt='%Y-%m-%d %H:%M:%S'
 )
 logger = logging.getLogger()
@@ -65,7 +56,7 @@ class Schema:
         return ['compare', 'create', 'drop', 'get_attributes', 'get_methods', 'get_table', 'get_tables', 'load_tables']
 
     # Methods
-    def create(self):
+    def create(self, charset="utf8mb4", collation="utf8mb4_general_ci"):
         if not self.exists:
             logger.debug("Schema not found")
             logger.info("Creating schema...")
@@ -130,10 +121,10 @@ class Schema:
                     'avg_row_length': row['avg_row_length'],
                     'max_data_length': row['max_data_length']
                 }
-            # logger.log(DEBUG, f"Tables is: {tables}")
+            # logger.debug(f"Tables is: {tables}")
             for table_name in tables.keys():
-                table = Table(schema = self, name=table_name)
-                tables[table_name]['columns'] = table.get_columns()
+                table = Table(schema=self, name=table_name)
+                # tables[table_name]['columns'] = table.get_columns()
             return tables
 
     def get_table(self, table_name):
@@ -142,37 +133,37 @@ class Schema:
             table = {}
             if len(result) > 0:
                 table[f"{result['table_name']}"] = result[0]
-            # logger.log(DEBUG, f"Table is: {table}")
-            table_obj = Table(self, table_name)
+            # logger.debug(f"Table is: {table}")
+            table_obj = Table(schema=self, name=table_name)
             table['columns'] = table_obj.get_columns()
             return table
 
     def compare(self, schema, gen_fix_script=False):
         if self.exists:
             # Check there is a valid connection in both databases
-            logger.log(DEBUG, f'Checking connectivity to {self.database.hostname} and {schema.database.hostname}')
+            logger.debug(f'Checking connectivity to {self.database.hostname} and {schema.database.hostname}')
             if self.database.is_connected() and schema.database.is_connected():
             # Check that the schema exists in both databases
-                logger.log(DEBUG, 'Creating schema objects for both databases')
+                logger.debug('Creating schema objects for both databases')
                 local_schema = self
                 remote_schema = schema
                 if remote_schema.name != 'NotFound':
-                    logger.log(DEBUG, f'Remote Schema is: {remote_schema.name}')
+                    logger.debug(f'Remote Schema is: {remote_schema.name}')
                     # Get colunms definitions and compare
                     local_schema.load_tables()
-                    # logger.log(DEBUG, f'Local Schema Tables: {local_schema.tables}')
+                    # logger.debug(f'Local Schema Tables: {local_schema.tables}')
                     remote_schema.load_tables()
-                    # logger.log(DEBUG, f'Remote Schema Tables: {remote_schema.tables}')
+                    # logger.debug(f'Remote Schema Tables: {remote_schema.tables}')
                     diff_dict = {
                         'differences': [],
                         'fix_commands': []
                     }
                     for table_entry in local_schema.tables.keys():
                         if table_entry in remote_schema.tables.keys():
-                            logger.log(DEBUG, f"Checking table {table_entry}")
+                            logger.debug(f"Checking table {table_entry}")
                             for column in local_schema.tables[table_entry]['columns'].keys():
                                 if column in remote_schema.tables[table_entry]['columns'].keys():
-                                    # logger.log(DEBUG, f"Checking column {column}")
+                                    # logger.debug(f"Checking column {column}")
                                     for key in local_schema.tables[table_entry]['columns'][column].keys():
                                         if key != 'ordinal_position':
                                             if local_schema.tables[table_entry]['columns'][column][key] != remote_schema.tables[table_entry]['columns'][column][key]:

@@ -1,23 +1,18 @@
 # General Imports
+import mysql
 from mysql.connector import errorcode
 from mysql.connector import FieldType
 from argparse import ArgumentParser
 from datetime import datetime
 from datetime import timedelta
 import json
-import getpass
 import logging
-from logging import DEBUG
-from logging import CRITICAL
-from logging import ERROR
-from logging import FATAL
-from logging import INFO
-from logging import WARNING
+from . import *
 
 # Format and Get root logger
 logging.basicConfig(
     format='[%(asctime)s][%(levelname)-8s] %(message)s',
-    level=INFO,
+    level=logging.INFO,
     datefmt='%Y-%m-%d %H:%M:%S'
 )
 logger = logging.getLogger()
@@ -70,11 +65,11 @@ class Database:
             self.auth_plugin = auth_plugin
         except mysql.connector.Error as err:
             if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
-                logger.log(CRITICAL, "Something is wrong with your user name or password")
+                logger.log(logging.CRITICAL, "Something is wrong with your user name or password")
             elif err.errno == errorcode.ER_BAD_DB_ERROR:
-                logger.log(CRITICAL, "Database does not exist")
+                logger.log(logging.CRITICAL, "Database does not exist")
             else:
-                logger.log(CRITICAL, err)
+                logger.log(logging.CRITICAL, err)
         finally:
             if cnx:
                 self.connection = cnx
@@ -91,14 +86,14 @@ class Database:
         try:
             if self.connection:
                 self.connection.close()
-                logger.log(INFO,f'Database {self.schema} on {self.hostname} disconnected')
+                logger.log(logging.INFO,f'Database {self.schema} on {self.hostname} disconnected')
         except mysql.connector.Error as err:
             if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
-                logger.log(CRITICAL, "Something is wrong with your user name or password")
+                logger.log(logging.CRITICAL, "Something is wrong with your user name or password")
             elif err.errno == errorcode.ER_BAD_DB_ERROR:
-                logger.log(CRITICAL, "Database does not exist")
+                logger.log(logging.CRITICAL, "Database does not exist")
             else:
-                logger.log(CRITICAL, err)
+                logger.log(logging.CRITICAL, err)
         finally:
             self.connection = None
 
@@ -166,17 +161,17 @@ class Database:
                     resultset["exec_time"] = f"{timer_elapsed.total_seconds()}"
                 logger.debug(f"Command executed successfully in {resultset['exec_time']} s")
             except mysql.connector.Error as err:
-                logger.log(WARNING, f'Catched mysql.connector.Error while executing {command}')
-                logger.log(CRITICAL, err.errno)
-                logger.log(CRITICAL, err.sqlstate)
-                logger.log(CRITICAL, err.msg)
+                logger.log(logging.WARNING, f'Catched mysql.connector.Error while executing {command}')
+                logger.log(logging.CRITICAL, err.errno)
+                logger.log(logging.CRITICAL, err.sqlstate)
+                logger.log(logging.CRITICAL, err.msg)
             except Exception as e:
-                logger.log(WARNING, f'Catched exception while executing: {command}')
-                logger.log(CRITICAL, e)
+                logger.log(logging.WARNING, f'Catched exception while executing: {command}')
+                logger.log(logging.CRITICAL, e)
             finally:
                 return resultset
         else:
-            logger.log(ERROR,'Please connect first, then try again')
+            logger.log(logging.ERROR,'Please connect first, then try again')
 
     ## Run Script
     def run(self, script):
